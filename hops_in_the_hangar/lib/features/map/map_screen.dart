@@ -125,7 +125,7 @@ class _MapScreenState extends State<MapScreen> {
                             ),
                             Text(
                               _selectedItem!.isVIP ? "👑 VIP Sponsor Location" : "Vendor Zone",
-                              style: TextStyle(color: AppColors.hopGold.withOpacity(0.9), fontSize: 14),
+                              style: TextStyle(color: AppColors.hopGold.withValues(alpha: 0.9), fontSize: 14),
                             ),
                           ],
                         ),

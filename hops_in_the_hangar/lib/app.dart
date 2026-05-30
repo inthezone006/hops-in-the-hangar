@@ -11,7 +11,6 @@ class HopsHangarApp extends StatelessWidget {
       title: 'Hops In The Hangar',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        useMaterialDesign: true,
         primaryColor: AppColors.hangarDarkBlue,
         scaffoldBackgroundColor: AppColors.backgroundLight,
       ),
