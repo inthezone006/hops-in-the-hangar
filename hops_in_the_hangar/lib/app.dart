@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'core/constants/app_colors.dart';
-import 'features/home/home_screen.dart';
+import 'features/navigation/event_shell.dart';
 
 class HopsHangarApp extends StatelessWidget {
   const HopsHangarApp({super.key});
@@ -58,8 +59,21 @@ class HopsHangarApp extends StatelessWidget {
               bodyColor: AppColors.hangarDarkBlue,
               displayColor: AppColors.hangarDarkBlue,
             ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: AppColors.surfaceWhite,
+          indicatorColor: AppColors.hopGold.withValues(alpha: 0.2),
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            return IconThemeData(color: states.contains(WidgetState.selected) ? AppColors.hangarDarkBlue : AppColors.mutedText);
+          }),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            return TextStyle(
+              color: states.contains(WidgetState.selected) ? AppColors.hangarDarkBlue : AppColors.mutedText,
+              fontWeight: FontWeight.w700,
+            );
+          }),
+        ),
       ),
-      home: const HomeScreen(),
+      home: const EventShell(),
     );
   }
 }

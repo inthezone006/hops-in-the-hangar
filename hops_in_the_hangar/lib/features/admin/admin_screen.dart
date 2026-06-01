@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../core/constants/app_colors.dart';
 import '../event/event_data.dart';
 
@@ -41,12 +39,12 @@ class _AdminScreenState extends State<AdminScreen> {
   IconData _scheduleIcon = Icons.event_note_rounded;
   IconData _sponsorIcon = Icons.star_rounded;
   bool _sponsorFeatured = false;
+  bool _adminUnlocked = false;
 
   @override
   void initState() {
     super.initState();
     _syncFromController();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybePromptLock());
   }
 
   @override
@@ -116,6 +114,10 @@ class _AdminScreenState extends State<AdminScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_adminUnlocked) {
+      return _buildLockedView(context);
+    }
+
     return AnimatedBuilder(
       animation: eventContentController,
       builder: (context, _) {
@@ -207,7 +209,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 child: Column(
                   children: [
                     DropdownButtonFormField<String>(
-                      value: _selectedSpotId,
+                      initialValue: _selectedSpotId,
                       decoration: const InputDecoration(labelText: 'Spot', border: OutlineInputBorder()),
                       items: eventContentController.mapSpots
                           .map((spot) => DropdownMenuItem(value: spot.id, child: Text(spot.name)))
@@ -231,7 +233,7 @@ class _AdminScreenState extends State<AdminScreen> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<MapCategory>(
-                      value: _spotCategory,
+                      initialValue: _spotCategory,
                       decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
                       items: MapCategory.values
                           .map((category) => DropdownMenuItem(value: category, child: Text(category.name)))
@@ -305,7 +307,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 child: Column(
                   children: [
                     DropdownButtonFormField<String>(
-                      value: _selectedScheduleKey,
+                      initialValue: _selectedScheduleKey,
                       decoration: const InputDecoration(labelText: 'Schedule item', border: OutlineInputBorder()),
                       items: eventContentController.scheduleItems
                           .map((item) => DropdownMenuItem(value: item.time, child: Text('${item.time} - ${item.title}')))
@@ -370,7 +372,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 child: Column(
                   children: [
                     DropdownButtonFormField<String>(
-                      value: _selectedSponsorName,
+                      initialValue: _selectedSponsorName,
                       decoration: const InputDecoration(labelText: 'Sponsor', border: OutlineInputBorder()),
                       items: eventContentController.sponsorCards
                           .map((sponsor) => DropdownMenuItem(value: sponsor.name, child: Text(sponsor.name)))
@@ -429,30 +431,129 @@ class _AdminScreenState extends State<AdminScreen> {
       );
     }
 
-    Future<void> _maybePromptLock() async {
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final String? pin = prefs.getString('admin_pin');
-      if (pin == null) {
-        await prefs.setString('admin_pin', '1234');
-        return;
-      }
+    Widget _buildLockedView(BuildContext context) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Admin Console')),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Card(
+              margin: const EdgeInsets.all(20),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Admin access locked', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Protect the event editor with a local PIN. Create one once, then use it whenever you need to update live content.',
+                      style: TextStyle(color: AppColors.mutedText, height: 1.45),
+                    ),
+                    const SizedBox(height: 18),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: () => _promptForPin(),
+                          icon: const Icon(Icons.key_rounded),
+                          label: const Text('Create or unlock PIN'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => _promptForPin(),
+                          icon: const Icon(Icons.lock_open_rounded),
+                          label: const Text('Enter PIN'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
+  Future<void> _promptForPin({bool createFirstPin = false}) async {
+    final String? storedPin = eventContentController.currentAdminPin();
       final TextEditingController entry = TextEditingController();
-      final bool ok = await showDialog<bool>(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => AlertDialog(
-              title: const Text('Enter Admin PIN'),
-              content: TextField(controller: entry, keyboardType: TextInputType.number, decoration: const InputDecoration(hintText: 'PIN')),
-              actions: [
-                TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-                FilledButton(onPressed: () => Navigator.of(context).pop(entry.text.trim() == pin), child: const Text('Unlock')),
+      final TextEditingController confirmEntry = TextEditingController();
+
+      final bool? success = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          final NavigatorState navigator = Navigator.of(dialogContext);
+          return AlertDialog(
+            title: Text(createFirstPin || storedPin == null ? 'Create Admin PIN' : 'Enter Admin PIN'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: entry,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: createFirstPin || storedPin == null ? 'New PIN' : 'PIN'),
+                ),
+                if (createFirstPin || storedPin == null) ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: confirmEntry,
+                    obscureText: true,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Confirm PIN'),
+                  ),
+                ],
               ],
             ),
-          ) ?? false;
+            actions: [
+              TextButton(
+                onPressed: () => navigator.pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  final String pin = entry.text.trim();
+                  if (pin.isEmpty) {
+                    navigator.pop(false);
+                    return;
+                  }
 
-      if (!ok && mounted) {
-        Navigator.of(context).maybePop();
+                  if (createFirstPin || storedPin == null) {
+                    if (pin != confirmEntry.text.trim()) {
+                      navigator.pop(false);
+                      return;
+                    }
+                    await eventContentController.setAdminPin(pin);
+                    if (mounted) {
+                      setState(() => _adminUnlocked = true);
+                    }
+                    navigator.pop(true);
+                    return;
+                  }
+
+                  if (await eventContentController.verifyAdminPin(pin)) {
+                    if (mounted) {
+                      setState(() => _adminUnlocked = true);
+                    }
+                    navigator.pop(true);
+                    return;
+                  }
+
+                  navigator.pop(false);
+                },
+                child: const Text('Continue'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (success == true && mounted) {
+        setState(() => _adminUnlocked = true);
       }
     }
 }
@@ -479,7 +580,7 @@ class _MetricCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: AppColors.hopGold.withOpacity(0.15),
+              color: AppColors.hopGold.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(metric.icon, color: AppColors.hangarDarkBlue),

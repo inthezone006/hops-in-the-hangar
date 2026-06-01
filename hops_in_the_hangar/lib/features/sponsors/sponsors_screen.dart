@@ -48,7 +48,7 @@ class SponsorsScreen extends StatelessWidget {
                   child: Card(
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: AppColors.hopGold.withOpacity(0.16),
+                        backgroundColor: AppColors.hopGold.withValues(alpha: 0.16),
                         child: Icon(sponsor.icon, color: AppColors.hangarDarkBlue),
                       ),
                       title: Text(sponsor.name, style: const TextStyle(fontWeight: FontWeight.w800)),

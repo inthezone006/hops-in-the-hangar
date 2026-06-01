@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive/hive.dart';
 
 enum MapCategory { all, sponsors, vendors, foodTrucks, amenities, entertainment }
 
@@ -69,7 +69,7 @@ class MapSpot {
       'left': left,
       'top': top,
       'icon': icon.codePoint,
-      'color': color.value,
+      'color': color.toARGB32(),
       'description': description,
       'isFeatured': isFeatured,
       'width': width,
@@ -889,7 +889,9 @@ class EventContentController extends ChangeNotifier {
   EventContentController._();
 
   static final EventContentController instance = EventContentController._();
+  static const String storageBoxName = 'hith_state';
   static const String _storageKey = 'event_content_v1';
+  static const String _adminPinKey = 'admin_pin_v1';
   bool _isLoaded = false;
 
   String heroHeadline = 'Hops in the Hangar';
@@ -903,8 +905,8 @@ class EventContentController extends ChangeNotifier {
   List<MapSpot> mapSpots = List<MapSpot>.from(venueSpots);
 
   Future<void> initialize() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String? raw = prefs.getString(_storageKey);
+    final Box<String> box = Hive.box<String>(storageBoxName);
+    final String? raw = box.get(_storageKey);
     if (raw != null && raw.isNotEmpty) {
       _applyJson(jsonDecode(raw) as Map<String, Object?>);
     }
@@ -965,6 +967,26 @@ class EventContentController extends ChangeNotifier {
   ScheduleItem? scheduleByTime(String time) => scheduleItems.where((item) => item.time == time).cast<ScheduleItem?>().firstOrNull;
   SponsorCard? sponsorByName(String name) => sponsorCards.where((card) => card.name == name).cast<SponsorCard?>().firstOrNull;
 
+  Future<String?> getAdminPin() async {
+    final Box<String> box = Hive.box<String>(storageBoxName);
+    return box.get(_adminPinKey);
+  }
+
+  String? currentAdminPin() {
+    final Box<String> box = Hive.box<String>(storageBoxName);
+    return box.get(_adminPinKey);
+  }
+
+  Future<void> setAdminPin(String pin) async {
+    final Box<String> box = Hive.box<String>(storageBoxName);
+    await box.put(_adminPinKey, pin);
+  }
+
+  Future<bool> verifyAdminPin(String pin) async {
+    final String? storedPin = await getAdminPin();
+    return storedPin != null && storedPin == pin;
+  }
+
   Map<String, Object?> _toJson() {
     return {
       'heroHeadline': heroHeadline,
@@ -1011,8 +1033,8 @@ class EventContentController extends ChangeNotifier {
     if (!_isLoaded) {
       return;
     }
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_storageKey, jsonEncode(_toJson()));
+    final Box<String> box = Hive.box<String>(storageBoxName);
+    await box.put(_storageKey, jsonEncode(_toJson()));
   }
 }
 
@@ -1022,4 +1044,5 @@ extension<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;
 }
 
+// ignore: non_const_argument_for_const_parameter
 IconData iconFromCodePoint(int codePoint) => IconData(codePoint, fontFamily: 'MaterialIcons');

@@ -171,7 +171,7 @@ class _ScheduleCard extends StatelessWidget {
                 width: 54,
                 height: 54,
                 decoration: BoxDecoration(
-                  color: accent.withOpacity(0.12),
+                  color: accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(item.icon, color: accent),
@@ -189,7 +189,7 @@ class _ScheduleCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: AppColors.hopGold.withOpacity(0.18),
+                              color: AppColors.hopGold.withValues(alpha: 0.18),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: const Text('featured', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),

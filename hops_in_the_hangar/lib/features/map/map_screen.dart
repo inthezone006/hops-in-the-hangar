@@ -148,15 +148,15 @@ class _MapScreenState extends State<MapScreen> {
                                 height: height,
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: spot.color.withOpacity(selected ? 0.98 : 0.94),
+                                  color: spot.color.withValues(alpha: selected ? 0.98 : 0.94),
                                   borderRadius: BorderRadius.circular(18),
                                   border: Border.all(
-                                    color: selected ? Colors.white : Colors.white.withOpacity(0.38),
+                                    color: selected ? Colors.white : Colors.white.withValues(alpha: 0.38),
                                     width: selected ? 2.2 : 1,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: spot.color.withOpacity(0.28),
+                                      color: spot.color.withValues(alpha: 0.28),
                                       blurRadius: selected ? 18 : 10,
                                       offset: const Offset(0, 8),
                                     ),
@@ -224,7 +224,7 @@ class _MapScreenState extends State<MapScreen> {
                             width: 56,
                             height: 56,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.12),
+                              color: Colors.white.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(18),
                             ),
                             child: Icon(_selectedSpot!.icon, color: Colors.white),
@@ -242,7 +242,7 @@ class _MapScreenState extends State<MapScreen> {
                                 const SizedBox(height: 4),
                                 Text(
                                   _selectedSpot!.description ?? 'Interactive venue marker',
-                                  style: TextStyle(color: Colors.white.withOpacity(0.75), height: 1.35),
+                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.75), height: 1.35),
                                 ),
                               ],
                             ),
@@ -287,7 +287,7 @@ class HangarMapPainter extends CustomPainter {
 
     final Paint hangarFill = Paint()..color = const Color(0xFFFDFCF8);
     final Paint outline = Paint()
-      ..color = AppColors.hangarDarkBlue.withOpacity(0.55)
+      ..color = AppColors.hangarDarkBlue.withValues(alpha: 0.55)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4;
 
@@ -306,7 +306,7 @@ class HangarMapPainter extends CustomPainter {
     canvas.drawRRect(outside, outline);
 
     final Paint aislePaint = Paint()
-      ..color = AppColors.hopGold.withOpacity(0.12)
+      ..color = AppColors.hopGold.withValues(alpha: 0.12)
       ..style = PaintingStyle.fill;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
@@ -320,7 +320,7 @@ class HangarMapPainter extends CustomPainter {
       Offset(size.width * 0.06, size.height * 0.90),
       Offset(size.width * 0.95, size.height * 0.90),
       Paint()
-        ..color = AppColors.hangarDarkBlue.withOpacity(0.55)
+        ..color = AppColors.hangarDarkBlue.withValues(alpha: 0.55)
         ..strokeWidth = 3,
     );
 
@@ -338,7 +338,7 @@ class HangarMapPainter extends CustomPainter {
 
   void _drawTables(Canvas canvas, Size size) {
     final Paint tablePaint = Paint()
-      ..color = AppColors.hangarDarkBlue.withOpacity(0.72)
+      ..color = AppColors.hangarDarkBlue.withValues(alpha: 0.72)
       ..strokeWidth = 4
       ..style = PaintingStyle.stroke;
 
@@ -388,10 +388,10 @@ class HangarMapPainter extends CustomPainter {
 
   void _drawUtilityBlocks(Canvas canvas, Size size) {
     final Paint utility = Paint()
-      ..color = AppColors.accentGreen.withOpacity(0.14)
+      ..color = AppColors.accentGreen.withValues(alpha: 0.14)
       ..style = PaintingStyle.fill;
     final Paint outline = Paint()
-      ..color = AppColors.accentGreen.withOpacity(0.55)
+      ..color = AppColors.accentGreen.withValues(alpha: 0.55)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5;
 
@@ -412,7 +412,7 @@ class HangarMapPainter extends CustomPainter {
       ..color = const Color(0xFFD95B63)
       ..style = PaintingStyle.fill;
     final Paint outline = Paint()
-      ..color = Colors.white.withOpacity(0.86)
+      ..color = Colors.white.withValues(alpha: 0.86)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 6;
 
@@ -469,7 +469,7 @@ class _CategoryChip extends StatelessWidget {
     return ChoiceChip(
       label: Text(label),
       selected: selected,
-      selectedColor: color.withOpacity(0.18),
+      selectedColor: color.withValues(alpha: 0.18),
       backgroundColor: Colors.white,
       labelStyle: TextStyle(
         color: selected ? AppColors.hangarDarkBlue : AppColors.mutedText,
@@ -491,7 +491,7 @@ class _RegionLabel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.82),
+        color: Colors.white.withValues(alpha: 0.82),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: AppColors.lineColor),
       ),
