@@ -1,7 +1,7 @@
 name: hops_in_the_hangar
-description: "A new Flutter project."
+description: "Hops in the Hangar is a Flutter layout application."
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.0.0
 
 environment:
   sdk: ^3.12.0
@@ -17,3 +17,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - images/lake.jpg
