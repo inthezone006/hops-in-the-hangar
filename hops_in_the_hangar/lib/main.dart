@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(const MainApp());
+void main() => runApp(const MyApp());
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const String appTitle = 'Hops in the Hangar';
+    const String appTitle = 'Flutter layout demo';
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
       title: appTitle,
       home: Scaffold(
         appBar: AppBar(title: const Text(appTitle)),
@@ -53,9 +52,11 @@ class TitleSection extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
+            /*1*/
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                /*2*/
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
@@ -67,8 +68,7 @@ class TitleSection extends StatelessWidget {
               ],
             ),
           ),
-          Icon(Icons.star, color: Colors.red[500]),
-          const Text('41'),
+          const FavoriteWidget(),
         ],
       ),
     );
@@ -142,6 +142,7 @@ class TextSection extends StatelessWidget {
     );
   }
 }
+
 class ImageSection extends StatelessWidget {
   const ImageSection({super.key, required this.image});
 
@@ -152,16 +153,24 @@ class ImageSection extends StatelessWidget {
     return Image.asset(image, width: 600, height: 240, fit: BoxFit.cover);
   }
 }
+
+// #docregion favorite-widget
 class FavoriteWidget extends StatefulWidget {
   const FavoriteWidget({super.key});
 
   @override
   State<FavoriteWidget> createState() => _FavoriteWidgetState();
 }
+// #enddocregion favorite-widget
+
+// #docregion favorite-state, favorite-state-fields, favorite-state-build
 class _FavoriteWidgetState extends State<FavoriteWidget> {
+  // #enddocregion favorite-state-build
   bool _isFavorited = true;
   int _favoriteCount = 41;
+  // #enddocregion favorite-state-fields
 
+  // #docregion toggle-favorite
   void _toggleFavorite() {
     setState(() {
       if (_isFavorited) {
@@ -173,7 +182,9 @@ class _FavoriteWidgetState extends State<FavoriteWidget> {
       }
     });
   }
+  // #enddocregion toggle-favorite
 
+  // #docregion favorite-state-build
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -195,4 +206,8 @@ class _FavoriteWidgetState extends State<FavoriteWidget> {
       ],
     );
   }
+
+  // #docregion favorite-state-build
 }
+
+// #enddocregion favorite-state, favorite-state-build
