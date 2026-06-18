@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.9
+  google_fonts: ^8.1.0
 
 dev_dependencies:
   flutter_test:
@@ -19,7 +20,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - images/lake.jpg
     - images/hops_website_header_logo.jpg
     - images/hops_website_header_logo.png
     - images/middletown_aviation_foundation_logo_2026.jpg
