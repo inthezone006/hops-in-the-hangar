@@ -1,6 +1,5 @@
 package com.rahul.hopsinthehangar.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -9,37 +8,37 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Amber700,
-    secondary = SkyBlue200,
-    tertiary = BeerGold,
-    background = DarkGrey,
-    surface = DarkGrey,
-    onPrimary = DarkGrey,
-    onSecondary = DarkGrey,
-    onBackground = androidx.compose.ui.graphics.Color.White,
-    onSurface = androidx.compose.ui.graphics.Color.White
+    primary = HangarGold,
+    secondary = HangarSteel,
+    tertiary = BeerAmber,
+    background = HangarDark,
+    surface = HangarDark,
+    onPrimary = HangarDark,
+    onSecondary = Color.White,
+    onBackground = Color.White,
+    onSurface = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Amber900,
-    secondary = SkyBlue700,
-    tertiary = BeerGold,
-    background = androidx.compose.ui.graphics.Color(0xFFFFF8E1), // Light amber tint
-    surface = androidx.compose.ui.graphics.Color.White,
-    onPrimary = androidx.compose.ui.graphics.Color.White,
-    onSecondary = androidx.compose.ui.graphics.Color.White,
-    onBackground = DarkGrey,
-    onSurface = DarkGrey
+    primary = HangarNavy,
+    secondary = HangarGold,
+    tertiary = BeerAmber,
+    background = Color(0xFFFDFCFB),
+    surface = Color.White,
+    onPrimary = Color.White,
+    onSecondary = HangarDark,
+    onBackground = HangarDark,
+    onSurface = HangarDark
 )
 
 @Composable
 fun HopsInTheHangarTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is disabled to maintain the brand theme
-    dynamicColor: Boolean = false,
+    dynamicColor: Boolean = false, // Set to false to keep our custom branding
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -47,7 +46,6 @@ fun HopsInTheHangarTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
