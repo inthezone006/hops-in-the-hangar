@@ -12,33 +12,35 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = HangarGold,
-    secondary = HangarSteel,
-    tertiary = BeerAmber,
-    background = HangarDark,
-    surface = HangarDark,
-    onPrimary = HangarDark,
-    onSecondary = Color.White,
-    onBackground = Color.White,
-    onSurface = Color.White
+    primary = PrimaryGold,
+    secondary = SkyBlue,
+    tertiary = SecondaryAmber,
+    background = DarkBlue,
+    surface = DarkBlue.copy(alpha = 0.8f),
+    onPrimary = DarkBlue,
+    onSecondary = White,
+    onTertiary = White,
+    onBackground = White,
+    onSurface = White
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = HangarNavy,
-    secondary = HangarGold,
-    tertiary = BeerAmber,
-    background = Color(0xFFFDFCFB),
-    surface = Color.White,
-    onPrimary = Color.White,
-    onSecondary = HangarDark,
-    onBackground = HangarDark,
-    onSurface = HangarDark
+    primary = PrimaryGold,
+    secondary = DarkBlue,
+    tertiary = SecondaryAmber,
+    background = White,
+    surface = White.copy(alpha = 0.9f),
+    onPrimary = DarkBlue,
+    onSecondary = White,
+    onTertiary = White,
+    onBackground = DarkBlue,
+    onSurface = DarkBlue
 )
 
 @Composable
 fun HopsInTheHangarTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // Set to false to keep our custom branding
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

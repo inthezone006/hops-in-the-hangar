@@ -22,10 +22,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.rahul.hopsinthehangar" />
+                  <option name="mobileSdkAppId" value="1:512491909757:android:99fe17bad40382d57f7714" />
+                  <option name="projectId" value="hops-in-the-hangar" />
+                  <option name="projectNumber" value="512491909757" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

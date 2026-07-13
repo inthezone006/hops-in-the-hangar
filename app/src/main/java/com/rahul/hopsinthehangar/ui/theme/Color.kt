@@ -2,10 +2,11 @@ package com.rahul.hopsinthehangar.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Inspired by the Hops in the Hangar Hero Image
-val HangarNavy = Color(0xFF1B263B)      // Deep professional navy
-val HangarGold = Color(0xFFE09F3E)      // Sunset amber from the photo
-val HangarSteel = Color(0xFF415A77)     // Metallic blue-grey
-val HangarCream = Color(0xFFF0EAD6)     // Warm background
-val HangarDark = Color(0xFF0D1B2A)      // Rich dark background
-val BeerAmber = Color(0xFF9E2A2B)       // Deep reddish amber
+// Modern & Exciting Palette
+val PrimaryGold = Color(0xFFFFB703)     // Vibrant orange-gold
+val SecondaryAmber = Color(0xFFFB8500)   // Deep orange
+val DarkBlue = Color(0xFF023047)        // Navy accent
+val SkyBlue = Color(0xFF8ECAE6)         // Light blue accent
+val White = Color(0xFFFFFFFF)
+val GlassWhite = Color(0xCCFFFFFF)      // Semi-transparent white
+val GlassBlack = Color(0x33000000)      // Semi-transparent black

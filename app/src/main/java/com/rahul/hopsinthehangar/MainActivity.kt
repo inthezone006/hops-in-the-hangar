@@ -1,15 +1,18 @@
 package com.rahul.hopsinthehangar
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedVisibility
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import kotlin.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -20,15 +23,27 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -43,6 +58,7 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
@@ -64,16 +80,17 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
-    val analytics = remember { Firebase.analytics }
+fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     
+    val isHome = currentRoute == Screen.Home.route
+
     // Log screen views
     LaunchedEffect(currentRoute) {
         currentRoute?.let { route ->
-            analytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW) {
+            analytics?.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW) {
                 param(FirebaseAnalytics.Param.SCREEN_NAME, route)
                 param(FirebaseAnalytics.Param.SCREEN_CLASS, "MainActivity")
             }
@@ -96,34 +113,39 @@ fun MainScreen() {
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        containerColor = if (isHome) Color.Transparent else MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text("Hops in the Hangar") },
-                navigationIcon = {
-                    if (currentRoute?.startsWith("detail") == true) {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            if (!isHome) {
+                TopAppBar(
+                    title = { Text(bottomNavItems.find { it.route == currentRoute }?.label ?: "Hops in the Hangar") },
+                    navigationIcon = {
+                        if (currentRoute?.startsWith("detail") == true) {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
                         }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 )
-            )
+            }
         },
         bottomBar = {
             NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.primary
+                containerColor = if (isHome) Color.Transparent else MaterialTheme.colorScheme.surface,
+                contentColor = if (isHome) Color.White else MaterialTheme.colorScheme.onSurface,
+                tonalElevation = if (isHome) 0.dp else 8.dp
             ) {
                 bottomNavItems.forEach { screen ->
+                    val selected = currentRoute == screen.route
                     NavigationBarItem(
                         icon = { Icon(screen.icon, contentDescription = screen.label) },
                         label = { Text(screen.label, maxLines = 1) },
-                        selected = currentRoute == screen.route,
+                        selected = selected,
                         onClick = {
                             navController.navigate(screen.route) {
                                 popUpTo(navController.graph.startDestinationId) { saveState = true }
@@ -131,34 +153,26 @@ fun MainScreen() {
                                 restoreState = true
                             }
                         },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                        )
+                        colors = if (isHome) {
+                            NavigationBarItemDefaults.colors(
+                                selectedIconColor = Color.White,
+                                unselectedIconColor = Color.White.copy(alpha = 0.6f),
+                                selectedTextColor = Color.White,
+                                unselectedTextColor = Color.White.copy(alpha = 0.6f),
+                                indicatorColor = Color.White.copy(alpha = 0.2f)
+                            )
+                        } else {
+                            NavigationBarItemDefaults.colors()
+                        }
                     )
                 }
             }
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    analytics.logEvent("ticket_click", null)
-                    scope.launch {
-                        snackbarHostState.showSnackbar("Tickets are all sold out for now!")
-                    }
-                },
-                icon = { Icon(Icons.Default.ConfirmationNumber, contentDescription = null) },
-                text = { Text("Tickets") },
-                containerColor = MaterialTheme.colorScheme.tertiary,
-                contentColor = MaterialTheme.colorScheme.onTertiary
-            )
         }
     ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(if (isHome) PaddingValues(0.dp) else innerPadding)
         ) {
             composable(Screen.Home.route) { HomeScreen() }
             composable(Screen.Sponsors.route) { 
@@ -170,7 +184,7 @@ fun MainScreen() {
             composable(Screen.Vendors.route) { 
                 VendorsScreen(
                     onVendorClick = { id -> 
-                        analytics.logEvent("vendor_detail_view") {
+                        analytics?.logEvent("vendor_detail_view") {
                             param("vendor_id", id)
                         }
                         navController.navigate("detail/vendor/$id") 
@@ -178,10 +192,6 @@ fun MainScreen() {
                     favoriteIds = favoriteIds,
                     onToggleFavorite = { id -> 
                         val isAdding = !favoriteIds.contains(id)
-                        analytics.logEvent("favorite_toggle") {
-                            param("item_id", id)
-                            param("is_favorite", isAdding.toString())
-                        }
                         if (isAdding) favoriteIds.add(id) else favoriteIds.remove(id)
                     }
                 ) 
@@ -196,98 +206,176 @@ fun MainScreen() {
     }
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-fun HomeScreen() {
-    Column(
+fun VideoBackground(videoResIds: List<Int>) {
+    val context = LocalContext.current
+    var currentVideoIndex by remember { mutableIntStateOf(0) }
+    
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            // Setup the player
+            repeatMode = Player.REPEAT_MODE_OFF // We'll handle looping/cycling manually
+            playWhenReady = true
+            
+            addListener(object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == Player.STATE_ENDED) {
+                        // Cycle to next video
+                        currentVideoIndex = (currentVideoIndex + 1) % videoResIds.size
+                    }
+                }
+            })
+        }
+    }
+
+    // Effect to update media item when index changes
+    LaunchedEffect(currentVideoIndex, videoResIds) {
+        if (videoResIds.isNotEmpty()) {
+            val videoResId = videoResIds[currentVideoIndex]
+            val uri = Uri.parse("android.resource://${context.packageName}/$videoResId")
+            exoPlayer.setMediaItem(MediaItem.fromUri(uri))
+            
+            // Set clipping to 7 seconds (7,000,000 microseconds)
+            // Note: Media3 clipping is done via MediaItem.ClippingConfiguration
+            val clippedItem = MediaItem.Builder()
+                .setUri(uri)
+                .setClippingConfiguration(
+                    MediaItem.ClippingConfiguration.Builder()
+                        .setEndPositionMs(7000) // Cut to 7 seconds
+                        .build()
+                )
+                .build()
+            
+            exoPlayer.setMediaItem(clippedItem)
+            exoPlayer.prepare()
+            exoPlayer.play()
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            exoPlayer.release()
+        }
+    }
+
+    AndroidView(
+        factory = {
+            PlayerView(it).apply {
+                player = exoPlayer
+                useController = false
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            }
+        },
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Hero image
+            .blur(15.dp) // Apply blur as requested
+    )
+}
+
+@Composable
+fun HomeScreen() {
+    val context = LocalContext.current
+    val videoIds = remember {
+        val ids = mutableListOf<Int>()
+        // Look for bg_video_1, bg_video_2, etc.
+        for (i in 1..10) {
+            val id = context.resources.getIdentifier("bg_video_$i", "raw", context.packageName)
+            if (id != 0) ids.add(id)
+        }
+        // Fallback to existing background_video if no numbered ones exist
+        if (ids.isEmpty()) {
+            val defaultId = context.resources.getIdentifier("background_video", "raw", context.packageName)
+            if (defaultId != 0) ids.add(defaultId)
+        }
+        ids
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (videoIds.isNotEmpty()) {
+            VideoBackground(videoResIds = videoIds)
+        } else {
+            Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray))
+        }
+
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(250.dp)
-                .clip(RoundedCornerShape(16.dp)),
-            contentAlignment = Alignment.BottomStart
-        ) {
-            AsyncImage(
-                model = "https://storage.googleapis.com/jb-chat-images/691d5755-e408-4171-be93-366a7b74f7be.png",
-                contentDescription = "Event Hero Image",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-            // Gradient overlay for readability
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                            startY = 300f
-                        )
-                    )
-            )
-            Text(
-                "Hops in the Hangar 2026",
-                style = MaterialTheme.typography.headlineLarge,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(16.dp)
-            )
-        }
-
-        Text(
-            text = "Welcome to Hops in the Hangar!",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.25f)) // Slightly darker for readability with blur
         )
 
-        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
+        // Title centered
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "Your ultimate Craft Beer & Airshow event app!",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    "HOPS IN THE\nHANGAR",
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        lineHeight = MaterialTheme.typography.displayLarge.lineHeight * 0.8
+                    ),
+                    textAlign = TextAlign.Center
                 )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
                 Text(
-                    text = "Explore a lineup of vendors and sponsors, discover detailed venue information, find the best hotels nearby, enjoy exciting entertainment, and get to know the featured airshow performers.",
-                    style = MaterialTheme.typography.bodyLarge
+                    "2026 EDITION",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Light,
+                        color = Color.White.copy(alpha = 0.8f),
+                        letterSpacing = 4.sp
+                    )
                 )
             }
         }
 
-        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(Modifier.size(8.dp))
-                    Text(
-                        text = "About the Event",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Craft beer, beverages, and aircraft come together to create not only a fun social event, but also an extremely unique community experience.",
-                    style = MaterialTheme.typography.bodyLarge
+        // Circular App Icon in Top Left
+        Surface(
+            modifier = Modifier
+                .statusBarsPadding()
+                .padding(16.dp)
+                .size(48.dp),
+            shape = CircleShape,
+            color = Color.White,
+            tonalElevation = 4.dp
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                // Using ic_launcher_foreground as it is a supported vector type
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                    contentDescription = "App Icon",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(32.dp)
                 )
             }
         }
-        
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
+@Composable
+fun GlassCard(title: String, description: String) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = Color.White.copy(alpha = 0.15f),
+            contentColor = Color.White
+        ),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Column(modifier = Modifier.padding(24.dp)) {
+            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(description, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SponsorsScreen(onSponsorClick: (String) -> Unit) {
     var searchQuery by remember { mutableStateOf("") }
@@ -355,6 +443,7 @@ fun SponsorsScreen(onSponsorClick: (String) -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VendorsScreen(
     onVendorClick: (String) -> Unit,
@@ -475,6 +564,7 @@ fun DetailScreen(type: String, id: String) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EntertainmentScreen() {
     Column(
@@ -557,6 +647,7 @@ data class VendorItem(val name: String, val category: String, val description: S
 @Composable
 fun MainScreenPreview() {
     HopsInTheHangarTheme {
-        MainScreen()
+        // Pass null for analytics in preview to avoid "FirebaseApp is not initialized" error
+        MainScreen(analytics = null)
     }
 }
