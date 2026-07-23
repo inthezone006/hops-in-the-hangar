@@ -12,12 +12,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = SecondarySlate,
-    secondary = TertiaryGold,
-    tertiary = PrimaryNavy,
-    background = PrimaryNavy,
-    surface = PrimaryNavy.copy(alpha = 0.9f),
-    onPrimary = White,
+    primary = AestheticGold,
+    secondary = SecondarySlate,
+    tertiary = LightNavy,
+    background = DeepNavy,
+    surface = PrimaryNavy,
+    onPrimary = DeepNavy,
     onSecondary = White,
     onTertiary = White,
     onBackground = White,
@@ -27,9 +27,9 @@ private val DarkColorScheme = darkColorScheme(
 private val LightColorScheme = lightColorScheme(
     primary = PrimaryNavy,
     secondary = SecondarySlate,
-    tertiary = TertiaryGold,
-    background = BackgroundGray,
-    surface = SurfaceWhite,
+    tertiary = AestheticGold,
+    background = Color(0xFFF4F7FB), // Very light bluish white
+    surface = White,
     onPrimary = White,
     onSecondary = White,
     onTertiary = PrimaryNavy,
@@ -39,7 +39,7 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun HopsInTheHangarTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true, // Force dark theme for aesthetic navy look by default
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {

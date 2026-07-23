@@ -117,25 +117,41 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             if (!isHome) {
-                TopAppBar(
-                    title = { Text(bottomNavItems.find { it.route == currentRoute }?.label ?: "Hops in the Hangar") },
+                CenterAlignedTopAppBar(
+                    title = { 
+                        Text(
+                            text = bottomNavItems.find { it.route == currentRoute }?.label?.uppercase() ?: "HOPS IN THE HANGAR",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp
+                            )
+                        ) 
+                    },
                     navigationIcon = {
                         if (currentRoute?.startsWith("detail") == true) {
                             IconButton(onClick = { navController.popBackStack() }) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                             }
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onBackground,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                    )
                 )
             }
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = Color.Transparent,
+                tonalElevation = 0.dp
+            ) {
                 bottomNavItems.forEach { screen ->
                     val selected = currentRoute == screen.route
                     NavigationBarItem(
                         icon = { Icon(screen.icon, contentDescription = screen.label) },
-                        label = { Text(screen.label, maxLines = 1) },
+                        label = { Text(screen.label, maxLines = 1, style = MaterialTheme.typography.labelSmall) },
                         selected = selected,
                         onClick = {
                             navController.navigate(screen.route) {
@@ -143,7 +159,14 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
                                 launchSingleTop = true
                                 restoreState = true
                             }
-                        }
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            unselectedIconColor = MaterialTheme.colorScheme.secondary,
+                            unselectedTextColor = MaterialTheme.colorScheme.secondary
+                        )
                     )
                 }
             }
@@ -152,7 +175,7 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(if (isHome) PaddingValues(0.dp) else innerPadding)
         ) {
             composable(Screen.Home.route) { HomeScreen() }
             composable(Screen.Sponsors.route) { 
@@ -263,114 +286,161 @@ fun HomeScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(64.dp))
         
         Text(
             "HOPS IN THE\nHANGAR",
             style = MaterialTheme.typography.displayLarge.copy(
                 fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.primary,
-                lineHeight = MaterialTheme.typography.displayLarge.lineHeight * 0.8
+                lineHeight = MaterialTheme.typography.displayLarge.lineHeight * 0.85
             ),
             textAlign = TextAlign.Center
         )
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        Text(
-            "2026 EDITION",
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Light,
-                color = MaterialTheme.colorScheme.secondary,
-                letterSpacing = 4.sp
+        Surface(
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Text(
+                "2026 EDITION",
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = 4.sp
+                )
             )
-        )
+        }
         
-        Spacer(modifier = Modifier.height(64.dp))
+        Spacer(modifier = Modifier.height(48.dp))
         
         ElevatedCard(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.elevatedCardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
+                modifier = Modifier.padding(28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     "Welcome to the Show",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.ExtraBold
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     "Experience the thrill of aviation and the taste of local craft beer at the Middletown Regional Airport.",
                     style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                 )
                 
-                Spacer(modifier = Modifier.height(24.dp))
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(32.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                Spacer(modifier = Modifier.height(32.dp))
                 
                 Text(
                     "LATEST ANNOUNCEMENTS",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.secondary,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
                     letterSpacing = 2.sp
+                )
+                
+                Spacer(modifier = Modifier.height(20.dp))
+                
+                AnnouncementRow(
+                    icon = Icons.Default.Mic,
+                    title = "Announcer",
+                    value = "Steven Hanshew aka Wild Bill"
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                Text(
-                    "Airshow Announcer: Steven Hanshew aka Wild Bill",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.Center
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Text(
-                    "Featured Performance: Smoke on Aviation (Louisville, KY)",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.Center
+                AnnouncementRow(
+                    icon = Icons.Default.AirplanemodeActive,
+                    title = "Featured Performance",
+                    value = "Smoke on Aviation"
                 )
             }
         }
         
-        Spacer(modifier = Modifier.height(64.dp))
+        Spacer(modifier = Modifier.height(48.dp))
         
         Text(
             "Middletown Aviation Foundation",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.onBackground
         )
         Text(
             "Your Hops in the Hangar Crew",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.secondary
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.secondary,
+            fontWeight = FontWeight.Medium
         )
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
         val crew = listOf(
             "Rich Bevis", "Kurt Yearout", "Sara Yearout", "Tom Spielmann",
             "Sean Askren", "Mica Jones", "Missy Lawwill", "Jamie Murphy"
         )
         
-        Text(
-            crew.joinToString("   "),
-            style = MaterialTheme.typography.bodySmall,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
+        @OptIn(ExperimentalLayoutApi::class)
+        FlowRow(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.Center,
+            maxItemsInEachRow = 3
+        ) {
+            crew.forEach { name ->
+                Text(
+                    name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(48.dp))
+    }
+}
+
+@Composable
+fun AnnouncementRow(icon: ImageVector, title: String, value: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(
+            icon, 
+            contentDescription = null, 
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                title, 
+                style = MaterialTheme.typography.labelSmall, 
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            )
+            Text(
+                value, 
+                style = MaterialTheme.typography.bodyMedium, 
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }
 
@@ -411,51 +481,67 @@ fun SponsorsScreen(onSponsorClick: (String) -> Unit) {
         it.name.contains(searchQuery, ignoreCase = true) || it.level.contains(searchQuery, ignoreCase = true)
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
             placeholder = { Text("Search Sponsors...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
             singleLine = true,
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedIndicatorColor = MaterialTheme.colorScheme.primary
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
             )
         )
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             items(filteredSponsors) { sponsor ->
-                OutlinedCard(
+                ElevatedCard(
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
                     onClick = { onSponsorClick(sponsor.name) },
-                    border = CardDefaults.outlinedCardBorder().copy(
-                        brush = Brush.linearGradient(
-                            listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
-                        )
+                    colors = CardDefaults.elevatedCardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
                     )
                 ) {
                     ListItem(
-                        headlineContent = { Text(sponsor.name, fontWeight = FontWeight.Bold) },
-                        supportingContent = { Text(sponsor.description) },
-                        overlineContent = { Text(sponsor.level, color = MaterialTheme.colorScheme.secondary) },
+                        headlineContent = { Text(sponsor.name, fontWeight = FontWeight.ExtraBold) },
+                        supportingContent = { Text(sponsor.description, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)) },
+                        overlineContent = { 
+                            Text(
+                                sponsor.level.uppercase(), 
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            ) 
+                        },
                         leadingContent = {
-                            Icon(
-                                Icons.Default.Star,
-                                contentDescription = null,
-                                tint = when(sponsor.level) {
-                                    "Diamond" -> MaterialTheme.colorScheme.primary
-                                    "Gold" -> Color(0xFFFFD700)
-                                    else -> MaterialTheme.colorScheme.tertiary
+                            Surface(
+                                modifier = Modifier.size(48.dp),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = when(sponsor.level) {
+                                            "Diamond" -> MaterialTheme.colorScheme.primary
+                                            "Gold" -> Color(0xFFFFD700)
+                                            else -> MaterialTheme.colorScheme.secondary
+                                        }
+                                    )
                                 }
-                            )
-                        }
+                            }
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                     )
                 }
             }
+            item { Spacer(modifier = Modifier.height(24.dp)) }
         }
     }
 }
@@ -489,49 +575,63 @@ fun VendorsScreen(
         it.name.contains(searchQuery, ignoreCase = true) || it.category.contains(searchQuery, ignoreCase = true)
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-            placeholder = { Text("Search Vendors...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+            placeholder = { Text("Search Breweries...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
             singleLine = true,
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedIndicatorColor = MaterialTheme.colorScheme.primary
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
             )
         )
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             items(filteredVendors) { vendor ->
                 val isFavorite = favoriteIds.contains(vendor.name)
-                OutlinedCard(
+                ElevatedCard(
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
                     onClick = { onVendorClick(vendor.name) },
-                    border = CardDefaults.outlinedCardBorder().copy(
-                        brush = Brush.linearGradient(
-                            listOf(MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.tertiary)
-                        )
+                    colors = CardDefaults.elevatedCardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
                     )
                 ) {
                     ListItem(
-                        headlineContent = { Text(vendor.name, fontWeight = FontWeight.Bold) },
-                        supportingContent = { Text(vendor.description) },
-                        overlineContent = { Text(vendor.category, color = MaterialTheme.colorScheme.primary) },
+                        headlineContent = { Text(vendor.name, fontWeight = FontWeight.ExtraBold) },
+                        supportingContent = { Text(vendor.description, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)) },
+                        overlineContent = { 
+                            Text(
+                                vendor.category.uppercase(), 
+                                color = MaterialTheme.colorScheme.secondary,
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                            ) 
+                        },
                         leadingContent = {
-                            Icon(
-                                imageVector = when(vendor.category) {
-                                    "Food" -> Icons.Default.Fastfood
-                                    "Brewery" -> Icons.Default.LocalBar
-                                    "Spirits" -> Icons.Default.WineBar
-                                    else -> Icons.Default.ShoppingCart
-                                },
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
+                            Surface(
+                                modifier = Modifier.size(48.dp),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = when(vendor.category) {
+                                            "Food" -> Icons.Default.Fastfood
+                                            "Brewery" -> Icons.Default.LocalBar
+                                            "Spirits" -> Icons.Default.WineBar
+                                            else -> Icons.Default.ShoppingCart
+                                        },
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.secondary
+                                    )
+                                }
+                            }
                         },
                         trailingContent = {
                             IconButton(onClick = { onToggleFavorite(vendor.name) }) {
@@ -541,10 +641,12 @@ fun VendorsScreen(
                                     tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
                                 )
                             }
-                        }
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                     )
                 }
             }
+            item { Spacer(modifier = Modifier.height(24.dp)) }
         }
     }
 }
@@ -554,36 +656,98 @@ fun DetailScreen(type: String, id: String) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        AsyncImage(
-            model = "https://images.unsplash.com/photo-1532634896-26909d0d4b89?q=80&w=1000", // Generic detail image
-            contentDescription = null,
-            modifier = Modifier
-                .size(200.dp)
-                .clip(RoundedCornerShape(16.dp)),
-            contentScale = ContentScale.Crop
-        )
-        Text(text = id, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-        Text(text = "Category: $type", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary)
-        
-        HorizontalDivider()
-        
-        Text(
-            text = "This is where detailed information about $id would go. You can edit this to include menus, full biographies, or special event offers for this specific $type.",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        
-        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Contact Information", fontWeight = FontWeight.Bold)
-                Text("Email: info@$id.com")
-                Text("Phone: (555) 012-3456")
-                Text("Website: www.$id.com")
+        Box(contentAlignment = Alignment.BottomEnd) {
+            AsyncImage(
+                model = "https://images.unsplash.com/photo-1532634896-26909d0d4b89?q=80&w=1000",
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(240.dp)
+                    .clip(RoundedCornerShape(32.dp)),
+                contentScale = ContentScale.Crop
+            )
+            
+            Surface(
+                modifier = Modifier.padding(16.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primary,
+                tonalElevation = 8.dp
+            ) {
+                Text(
+                    text = type.uppercase(),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
+
+        Text(
+            text = id, 
+            style = MaterialTheme.typography.headlineMedium, 
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    "About", 
+                    style = MaterialTheme.typography.titleMedium, 
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "This is where detailed information about $id would go. You can edit this to include menus, full biographies, or special event offers for this specific $type.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
+            }
+        }
+        
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    "Contact Information", 
+                    style = MaterialTheme.typography.titleMedium, 
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                DetailContactRow(icon = Icons.Default.Email, value = "info@$id.com")
+                Spacer(modifier = Modifier.height(12.dp))
+                DetailContactRow(icon = Icons.Default.Phone, value = "(555) 012-3456")
+                Spacer(modifier = Modifier.height(12.dp))
+                DetailContactRow(icon = Icons.Default.Language, value = "www.$id.com")
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+fun DetailContactRow(icon: ImageVector, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -594,30 +758,45 @@ fun EntertainmentScreen() {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         Text(
             text = "Featured Performers",
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.sp
         )
 
-        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(8.dp)) {
                 ListItem(
-                    headlineContent = { Text("Wild Bill") },
+                    headlineContent = { Text("Wild Bill", fontWeight = FontWeight.Bold) },
                     supportingContent = { Text("Steven Hanshew") },
-                    overlineContent = { Text("Airshow Announcer") },
-                    leadingContent = { Icon(Icons.Default.Mic, contentDescription = null) }
+                    overlineContent = { Text("ANNNOUNCER", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall) },
+                    leadingContent = { 
+                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), modifier = Modifier.size(40.dp)) {
+                            Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Mic, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) }
+                        }
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                 )
-                HorizontalDivider()
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                 ListItem(
-                    headlineContent = { Text("Smoke on Aviation") },
+                    headlineContent = { Text("Smoke on Aviation", fontWeight = FontWeight.Bold) },
                     supportingContent = { Text("Out of Louisville, KY") },
-                    overlineContent = { Text("Airshow Performance") },
-                    leadingContent = { Icon(Icons.Default.AirplanemodeActive, contentDescription = null) }
+                    overlineContent = { Text("PERFORMANCE", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelSmall) },
+                    leadingContent = { 
+                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f), modifier = Modifier.size(40.dp)) {
+                            Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.AirplanemodeActive, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp)) }
+                        }
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                 )
             }
         }
@@ -625,7 +804,9 @@ fun EntertainmentScreen() {
         Text(
             text = "Event Schedule",
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.sp
         )
 
         val schedule = listOf(
@@ -636,32 +817,90 @@ fun EntertainmentScreen() {
             "18:00" to "Sunset Finale - Evening Parachute Jump"
         )
 
-        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-            Column {
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(vertical = 8.dp)) {
                 schedule.forEachIndexed { index, (time, event) ->
                     ListItem(
-                        headlineContent = { Text(event) },
-                        supportingContent = { Text(time) },
-                        leadingContent = { Icon(Icons.Default.Event, contentDescription = null) }
+                        headlineContent = { Text(event, fontWeight = FontWeight.Bold) },
+                        supportingContent = { Text(time, color = MaterialTheme.colorScheme.primary) },
+                        leadingContent = { 
+                            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f), modifier = Modifier.size(40.dp)) {
+                                Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Event, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) }
+                            }
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                     )
-                    if (index < schedule.size - 1) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    if (index < schedule.size - 1) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                 }
             }
         }
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
 @Composable
 fun MapScreen() {
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.secondary)
-        Spacer(Modifier.height(16.dp))
-        Text(text = "Event Map Coming Soon", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text(text = "Interactive Middletown Regional Airport map", style = MaterialTheme.typography.bodyMedium)
+        Surface(
+            modifier = Modifier.size(120.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    Icons.Default.LocationOn, 
+                    contentDescription = null, 
+                    modifier = Modifier.size(64.dp), 
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+        
+        Spacer(Modifier.height(32.dp))
+        
+        Text(
+            text = "Event Map Coming Soon", 
+            style = MaterialTheme.typography.headlineSmall, 
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        
+        Spacer(Modifier.height(12.dp))
+        
+        Text(
+            text = "Interactive Middletown Regional Airport map will be available on event day.", 
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+        )
+        
+        Spacer(Modifier.height(48.dp))
+        
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Row(
+                modifier = Modifier.padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Navigation, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text("Airport Address", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    Text("1707 Run Way, Middletown, OH 45042", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
     }
 }
 
