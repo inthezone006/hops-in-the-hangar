@@ -4,6 +4,7 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import kotlin.OptIn
@@ -60,7 +61,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(
+                android.graphics.Color.TRANSPARENT
+            )
+        )
         setContent {
             HopsInTheHangarTheme {
                 MainScreen()
@@ -84,8 +89,6 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    
-    val isHome = currentRoute == Screen.Home.route
 
     // Log screen views
     LaunchedEffect(currentRoute) {
@@ -116,35 +119,33 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            if (!isHome) {
-                CenterAlignedTopAppBar(
-                    title = { 
-                        Text(
-                            text = bottomNavItems.find { it.route == currentRoute }?.label?.uppercase() ?: "HOPS IN THE HANGAR",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 2.sp
-                            )
-                        ) 
-                    },
-                    navigationIcon = {
-                        if (currentRoute?.startsWith("detail") == true) {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                            }
+            CenterAlignedTopAppBar(
+                title = { 
+                    Text(
+                        text = bottomNavItems.find { it.route == currentRoute }?.label?.uppercase() ?: "HOPS IN THE HANGAR",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.sp
+                        )
+                    ) 
+                },
+                navigationIcon = {
+                    if (currentRoute?.startsWith("detail") == true) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        titleContentColor = MaterialTheme.colorScheme.onBackground,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground
-                    )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
                 )
-            }
+            )
         },
         bottomBar = {
             NavigationBar(
-                containerColor = Color.Transparent,
+                containerColor = MaterialTheme.colorScheme.background,
                 tonalElevation = 0.dp
             ) {
                 bottomNavItems.forEach { screen ->
@@ -175,7 +176,7 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(if (isHome) PaddingValues(0.dp) else innerPadding)
+            modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Home.route) { HomeScreen() }
             composable(Screen.Sponsors.route) { 
@@ -284,9 +285,9 @@ fun HomeScreen() {
             .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
-        Spacer(modifier = Modifier.height(64.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
         Text(
             "HOPS IN THE\nHANGAR",
@@ -319,19 +320,19 @@ fun HomeScreen() {
         
         ElevatedCard(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.elevatedCardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
             Column(
-                modifier = Modifier.padding(28.dp),
+                modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     "Welcome to the Show",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.ExtraBold
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -341,106 +342,121 @@ fun HomeScreen() {
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                 )
-                
-                Spacer(modifier = Modifier.height(32.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                Text(
-                    "LATEST ANNOUNCEMENTS",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 2.sp
-                )
-                
-                Spacer(modifier = Modifier.height(20.dp))
-                
-                AnnouncementRow(
-                    icon = Icons.Default.Mic,
-                    title = "Announcer",
-                    value = "Steven Hanshew aka Wild Bill"
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                AnnouncementRow(
-                    icon = Icons.Default.AirplanemodeActive,
-                    title = "Featured Performance",
-                    value = "Smoke on Aviation"
-                )
             }
         }
-        
-        Spacer(modifier = Modifier.height(48.dp))
-        
-        Text(
-            "Middletown Aviation Foundation",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Text(
-            "Your Hops in the Hangar Crew",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.secondary,
-            fontWeight = FontWeight.Medium
-        )
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        val crew = listOf(
-            "Rich Bevis", "Kurt Yearout", "Sara Yearout", "Tom Spielmann",
-            "Sean Askren", "Mica Jones", "Missy Lawwill", "Jamie Murphy"
+        Text(
+            "LATEST ANNOUNCEMENTS",
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.sp
         )
         
-        @OptIn(ExperimentalLayoutApi::class)
-        FlowRow(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.Center,
-            maxItemsInEachRow = 3
+        Spacer(modifier = Modifier.height(16.dp))
+
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            crew.forEach { name ->
-                Text(
-                    name,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                ListItem(
+                    headlineContent = { Text("Wild Bill", fontWeight = FontWeight.Bold) },
+                    supportingContent = { Text("Steven Hanshew") },
+                    overlineContent = { Text("ANNOUNCER", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall) },
+                    leadingContent = { 
+                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), modifier = Modifier.size(40.dp)) {
+                            Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Mic, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) }
+                        }
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                )
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                ListItem(
+                    headlineContent = { Text("Smoke on Aviation", fontWeight = FontWeight.Bold) },
+                    supportingContent = { Text("Out of Louisville, KY") },
+                    overlineContent = { Text("PERFORMANCE", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelSmall) },
+                    leadingContent = { 
+                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f), modifier = Modifier.size(40.dp)) {
+                            Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.AirplanemodeActive, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp)) }
+                        }
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                 )
             }
         }
         
-        Spacer(modifier = Modifier.height(48.dp))
-    }
-}
+        Spacer(modifier = Modifier.height(32.dp))
 
-@Composable
-fun AnnouncementRow(icon: ImageVector, title: String, value: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Icon(
-            icon, 
-            contentDescription = null, 
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp)
+        Text(
+            "OUR TEAM",
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.sp
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                title, 
-                style = MaterialTheme.typography.labelSmall, 
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-            )
-            Text(
-                value, 
-                style = MaterialTheme.typography.bodyMedium, 
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "Middletown Aviation Foundation",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "Your Hops in the Hangar Crew",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontWeight = FontWeight.Medium
+                )
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                val crew = listOf(
+                    "Rich Bevis", "Kurt Yearout", "Sara Yearout", "Tom Spielmann",
+                    "Sean Askren", "Mica Jones", "Missy Lawwill", "Jamie Murphy"
+                )
+                
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    maxItemsInEachRow = 3
+                ) {
+                    crew.forEach { name ->
+                        Surface(
+                            modifier = Modifier.padding(4.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                        ) {
+                            Text(
+                                name,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
+            }
         }
+        
+        Spacer(modifier = Modifier.height(64.dp))
     }
 }
 
@@ -468,12 +484,23 @@ fun SponsorsScreen(onSponsorClick: (String) -> Unit) {
     var searchQuery by remember { mutableStateOf("") }
     val sponsors = remember {
         listOf(
-            SponsorItem("Skyline Airways", "Diamond", "Official Flight Partner"),
-            SponsorItem("Hoppy Valley Brewing", "Gold", "Providing the finest local craft beer"),
-            SponsorItem("Middletown Community Bank", "Gold", "Proud supporter of local events"),
-            SponsorItem("Aviation Tech Solutions", "Silver", "Innovation in the skies"),
-            SponsorItem("Cloud Nine Hospitality", "Silver", "Premium event experiences"),
-            SponsorItem("Hangar Refreshments", "Bronze", "Quality drinks for all guests")
+            SponsorItem("City of Middletown & MWO", "Top Flight", "Top Flight Airshow Sponsor"),
+            SponsorItem("Start Skydiving & Team Fastrax", "First Class", "First Class Sponsor"),
+            SponsorItem("Safe Skies Aviation, LLC", "Business Class", "Business Class Sponsor"),
+            SponsorItem("Balloon Dog Events", "Business Class", "Business Class Sponsor"),
+            SponsorItem("Thread Headz", "Business Class", "Business Class Sponsor"),
+            SponsorItem("Lewis Horticultural Service", "Business Class", "Business Class Sponsor"),
+            SponsorItem("BB Tech Services", "Business Class", "Business Class Sponsor"),
+            SponsorItem("Middletown Community Foundation", "Coach Class", "Coach Class Sponsor"),
+            SponsorItem("Askren Balloon Team", "Coach Class", "Coach Class Sponsor"),
+            SponsorItem("Hartzell Propeller", "Coach Class", "Coach Class Sponsor"),
+            SponsorItem("Valley Central Bank", "Passport", "Passport Sponsor"),
+            SponsorItem("Midwest Air Recovery", "Passport", "Passport Sponsor"),
+            SponsorItem("Big Daddy Dumpsters", "Passport", "Passport Sponsor"),
+            SponsorItem("Miami Valley Propane", "Passport", "Passport Sponsor"),
+            SponsorItem("Phillips Tube Group", "Passport", "Passport Sponsor"),
+            SponsorItem("Kara Goheen Friends & Furball", "Passport", "Passport Sponsor"),
+            SponsorItem("New Ales Brewing", "Brewery", "Sponsoring Brewery")
         )
     }
 
@@ -502,7 +529,7 @@ fun SponsorsScreen(onSponsorClick: (String) -> Unit) {
             items(filteredSponsors) { sponsor ->
                 ElevatedCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(24.dp),
                     onClick = { onSponsorClick(sponsor.name) },
                     colors = CardDefaults.elevatedCardColors(
                         containerColor = MaterialTheme.colorScheme.surface
@@ -529,9 +556,12 @@ fun SponsorsScreen(onSponsorClick: (String) -> Unit) {
                                         Icons.Default.Star,
                                         contentDescription = null,
                                         tint = when(sponsor.level) {
-                                            "Diamond" -> MaterialTheme.colorScheme.primary
-                                            "Gold" -> Color(0xFFFFD700)
-                                            else -> MaterialTheme.colorScheme.secondary
+                                            "Top Flight" -> MaterialTheme.colorScheme.primary
+                                            "First Class" -> Color(0xFFFFD700) // Gold
+                                            "Business Class" -> Color(0xFFC0C0C0) // Silver
+                                            "Coach Class" -> Color(0xFFCD7F32) // Bronze
+                                            "Brewery" -> MaterialTheme.colorScheme.secondary
+                                            else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
                                         }
                                     )
                                 }
@@ -597,7 +627,7 @@ fun VendorsScreen(
                 val isFavorite = favoriteIds.contains(vendor.name)
                 ElevatedCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(24.dp),
                     onClick = { onVendorClick(vendor.name) },
                     colors = CardDefaults.elevatedCardColors(
                         containerColor = MaterialTheme.colorScheme.surface
