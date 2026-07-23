@@ -2,11 +2,12 @@ package com.rahul.hopsinthehangar.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Modern & Exciting Palette
-val PrimaryGold = Color(0xFFFFB703)     // Vibrant orange-gold
-val SecondaryAmber = Color(0xFFFB8500)   // Deep orange
-val DarkBlue = Color(0xFF023047)        // Navy accent
-val SkyBlue = Color(0xFF8ECAE6)         // Light blue accent
+// Modern & Professional Palette
+val PrimaryNavy = Color(0xFF0A2342)
+val SecondarySlate = Color(0xFF5D737E)
+val TertiaryGold = Color(0xFFD4AF37)
+val BackgroundGray = Color(0xFFF9F9F9)
+val SurfaceWhite = Color(0xFFFFFFFF)
+
 val White = Color(0xFFFFFFFF)
-val GlassWhite = Color(0xCCFFFFFF)      // Semi-transparent white
-val GlassBlack = Color(0x33000000)      // Semi-transparent black
+val Black = Color(0xFF000000)

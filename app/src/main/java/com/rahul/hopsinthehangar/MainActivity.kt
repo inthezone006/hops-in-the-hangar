@@ -113,7 +113,7 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = if (isHome) Color.Transparent else MaterialTheme.colorScheme.background,
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             if (!isHome) {
@@ -125,21 +125,12 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                             }
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface
-                    )
+                    }
                 )
             }
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = if (isHome) Color.Transparent else MaterialTheme.colorScheme.surface,
-                contentColor = if (isHome) Color.White else MaterialTheme.colorScheme.onSurface,
-                tonalElevation = if (isHome) 0.dp else 8.dp
-            ) {
+            NavigationBar {
                 bottomNavItems.forEach { screen ->
                     val selected = currentRoute == screen.route
                     NavigationBarItem(
@@ -152,17 +143,6 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
                                 launchSingleTop = true
                                 restoreState = true
                             }
-                        },
-                        colors = if (isHome) {
-                            NavigationBarItemDefaults.colors(
-                                selectedIconColor = Color.White,
-                                unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                                selectedTextColor = Color.White,
-                                unselectedTextColor = Color.White.copy(alpha = 0.6f),
-                                indicatorColor = Color.White.copy(alpha = 0.2f)
-                            )
-                        } else {
-                            NavigationBarItemDefaults.colors()
                         }
                     )
                 }
@@ -172,7 +152,7 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(if (isHome) PaddingValues(0.dp) else innerPadding)
+            modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Home.route) { HomeScreen() }
             composable(Screen.Sponsors.route) { 
@@ -268,92 +248,129 @@ fun VideoBackground(videoResIds: List<Int>) {
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
             }
         },
-        modifier = Modifier
-            .fillMaxSize()
-            .blur(15.dp) // Apply blur as requested
+        modifier = Modifier.fillMaxSize()
     )
 }
 
 @Composable
 fun HomeScreen() {
-    val context = LocalContext.current
-    val videoIds = remember {
-        val ids = mutableListOf<Int>()
-        // Look for bg_video_1, bg_video_2, etc.
-        for (i in 1..10) {
-            val id = context.resources.getIdentifier("bg_video_$i", "raw", context.packageName)
-            if (id != 0) ids.add(id)
-        }
-        // Fallback to existing background_video if no numbered ones exist
-        if (ids.isEmpty()) {
-            val defaultId = context.resources.getIdentifier("background_video", "raw", context.packageName)
-            if (defaultId != 0) ids.add(defaultId)
-        }
-        ids
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (videoIds.isNotEmpty()) {
-            VideoBackground(videoResIds = videoIds)
-        } else {
-            Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray))
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.25f)) // Slightly darker for readability with blur
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Spacer(modifier = Modifier.height(48.dp))
+        
+        Text(
+            "HOPS IN THE\nHANGAR",
+            style = MaterialTheme.typography.displayLarge.copy(
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.primary,
+                lineHeight = MaterialTheme.typography.displayLarge.lineHeight * 0.8
+            ),
+            textAlign = TextAlign.Center
         )
-
-        // Title centered
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Text(
+            "2026 EDITION",
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.Light,
+                color = MaterialTheme.colorScheme.secondary,
+                letterSpacing = 4.sp
+            )
+        )
+        
+        Spacer(modifier = Modifier.height(64.dp))
+        
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(
-                    "HOPS IN THE\nHANGAR",
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontWeight = FontWeight.Black,
-                        color = Color.White,
-                        lineHeight = MaterialTheme.typography.displayLarge.lineHeight * 0.8
-                    ),
+                    "Welcome to the Show",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "Experience the thrill of aviation and the taste of local craft beer at the Middletown Regional Airport.",
+                    style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Text(
+                    "LATEST ANNOUNCEMENTS",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.secondary,
+                    letterSpacing = 2.sp
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
-                    "2026 EDITION",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Light,
-                        color = Color.White.copy(alpha = 0.8f),
-                        letterSpacing = 4.sp
-                    )
+                    "Airshow Announcer: Steven Hanshew aka Wild Bill",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    "Featured Performance: Smoke on Aviation (Louisville, KY)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center
                 )
             }
         }
-
-        // Circular App Icon in Top Left
-        Surface(
-            modifier = Modifier
-                .statusBarsPadding()
-                .padding(16.dp)
-                .size(48.dp),
-            shape = CircleShape,
-            color = Color.White,
-            tonalElevation = 4.dp
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                // Using ic_launcher_foreground as it is a supported vector type
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                    contentDescription = "App Icon",
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-        }
+        
+        Spacer(modifier = Modifier.height(64.dp))
+        
+        Text(
+            "Middletown Aviation Foundation",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            "Your Hops in the Hangar Crew",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.secondary
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        val crew = listOf(
+            "Rich Bevis", "Kurt Yearout", "Sara Yearout", "Tom Spielmann",
+            "Sean Askren", "Mica Jones", "Missy Lawwill", "Jamie Murphy"
+        )
+        
+        Text(
+            crew.joinToString("   "),
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
@@ -453,12 +470,18 @@ fun VendorsScreen(
     var searchQuery by remember { mutableStateOf("") }
     val vendors = remember {
         listOf(
-            VendorItem("The Golden Hops", "Brewery", "Award-winning IPAs and Stouts"),
-            VendorItem("Hangar Grill", "Food", "Gourmet burgers and aviation-themed sides"),
-            VendorItem("Sky-High Crafts", "Merchandise", "Handmade aviation art and apparel"),
-            VendorItem("Blue Sky Distillery", "Spirits", "Small-batch gin and vodka"),
-            VendorItem("Taco Takeoff", "Food", "Authentic street tacos with a kick"),
-            VendorItem("Propeller Pretzels", "Snacks", "Giant soft pretzels with beer cheese")
+            VendorItem("High Grain Brewing", "Brewery", "Cincinnati, OH"),
+            VendorItem("Dafuque beer company", "Brewery", "Local Favorite"),
+            VendorItem("Streetside Brewery", "Brewery", "Cincinnati, OH"),
+            VendorItem("Loose Ends Brewing", "Brewery", "Centerville, OH"),
+            VendorItem("Third eye brewing", "Brewery", "Sharonville, OH"),
+            VendorItem("Gravel Road Brewing Co", "Brewery", "Middletown, OH"),
+            VendorItem("Depot Brewing Company", "Brewery", "Fairborn, OH"),
+            VendorItem("Sonder Brewing", "Brewery", "Mason, OH"),
+            VendorItem("Stevens Point Brewery", "Brewery", "Stevens Point, WI"),
+            VendorItem("Heavier Than Air Brewing Co", "Brewery", "Centerville, OH"),
+            VendorItem("NEW Ales", "Brewery", "Middletown, OH"),
+            VendorItem("BC's Brewing Company", "Brewery", "Mason, OH")
         )
     }
 
@@ -575,7 +598,7 @@ fun EntertainmentScreen() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Entertainment Schedule",
+            text = "Featured Performers",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold
@@ -584,21 +607,23 @@ fun EntertainmentScreen() {
         ElevatedCard(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 ListItem(
-                    headlineContent = { Text("Sky High Beats") },
-                    overlineContent = { Text("DJ") },
-                    leadingContent = { Icon(Icons.Default.MusicNote, contentDescription = null) }
+                    headlineContent = { Text("Wild Bill") },
+                    supportingContent = { Text("Steven Hanshew") },
+                    overlineContent = { Text("Airshow Announcer") },
+                    leadingContent = { Icon(Icons.Default.Mic, contentDescription = null) }
                 )
                 HorizontalDivider()
                 ListItem(
-                    headlineContent = { Text("Captain Clouds") },
-                    overlineContent = { Text("Air Show Announcer") },
-                    leadingContent = { Icon(Icons.Default.Mic, contentDescription = null) }
+                    headlineContent = { Text("Smoke on Aviation") },
+                    supportingContent = { Text("Out of Louisville, KY") },
+                    overlineContent = { Text("Airshow Performance") },
+                    leadingContent = { Icon(Icons.Default.AirplanemodeActive, contentDescription = null) }
                 )
             }
         }
 
         Text(
-            text = "Jump Schedule",
+            text = "Event Schedule",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
