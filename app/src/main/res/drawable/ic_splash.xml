@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- White Circle Background -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@android:color/white" />
+            <size android:width="108dp" android:height="108dp" />
+        </shape>
+    </item>
+
+    <!-- App Icon Foreground -->
+    <item
+        android:drawable="@mipmap/ic_launcher_foreground"
+        android:top="12dp"
+        android:bottom="12dp"
+        android:left="12dp"
+        android:right="12dp" />
+</layer-list>

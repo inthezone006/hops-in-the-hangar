@@ -1,0 +1,50 @@
+{
+  "sponsors": [
+    { "name": "City of Middletown & MWO", "level": "Top Flight", "description": "Top Flight Airshow Sponsor" },
+    { "name": "Start Skydiving & Team Fastrax", "level": "First Class", "description": "First Class Sponsor" },
+    { "name": "Safe Skies Aviation, LLC", "level": "Business Class", "description": "Business Class Sponsor" },
+    { "name": "Balloon Dog Events", "level": "Business Class", "description": "Business Class Sponsor" },
+    { "name": "Thread Headz", "level": "Business Class", "description": "Business Class Sponsor" },
+    { "name": "Lewis Horticultural Service", "level": "Business Class", "description": "Business Class Sponsor" },
+    { "name": "BB Tech Services", "level": "Business Class", "description": "Business Class Sponsor" },
+    { "name": "Middletown Community Foundation", "level": "Coach Class", "description": "Coach Class Sponsor" },
+    { "name": "Askren Balloon Team", "level": "Coach Class", "description": "Coach Class Sponsor" },
+    { "name": "Hartzell Propeller", "level": "Coach Class", "description": "Coach Class Sponsor" },
+    { "name": "Valley Central Bank", "level": "Passport", "description": "Passport Sponsor" },
+    { "name": "Midwest Air Recovery", "level": "Passport", "description": "Passport Sponsor" },
+    { "name": "Big Daddy Dumpsters", "level": "Passport", "description": "Passport Sponsor" },
+    { "name": "Miami Valley Propane", "level": "Passport", "description": "Passport Sponsor" },
+    { "name": "Phillips Tube Group", "level": "Passport", "description": "Passport Sponsor" },
+    { "name": "Kara Goheen Friends & Furball", "level": "Passport", "description": "Passport Sponsor" },
+    { "name": "New Ales Brewing", "level": "Brewery", "description": "Sponsoring Brewery" }
+  ],
+  "vendors": [
+    { "name": "High Grain Brewing", "category": "Brewery", "description": "Cincinnati, OH", "email": "info@highgrainbrewing.com", "phone": "513-123-4567", "website": "https://highgrainbrewing.com" },
+    { "name": "Dafuque beer company", "category": "Brewery", "description": "Local Favorite", "website": "https://dafuquebeer.com" },
+    { "name": "Streetside Brewery", "category": "Brewery", "description": "Cincinnati, OH" },
+    { "name": "Loose Ends Brewing", "category": "Brewery", "description": "Centerville, OH" },
+    { "name": "Third eye brewing", "category": "Brewery", "description": "Sharonville, OH" },
+    { "name": "Gravel Road Brewing Co", "category": "Brewery", "description": "Middletown, OH" },
+    { "name": "Depot Brewing Company", "category": "Brewery", "description": "Fairborn, OH" },
+    { "name": "Sonder Brewing", "category": "Brewery", "description": "Mason, OH" },
+    { "name": "Stevens Point Brewery", "category": "Brewery", "description": "Stevens Point, WI" },
+    { "name": "Heavier Than Air Brewing Co", "category": "Brewery", "description": "Centerville, OH" },
+    { "name": "NEW Ales", "category": "Brewery", "description": "Middletown, OH" },
+    { "name": "BC's Brewing Company", "category": "Brewery", "description": "Mason, OH" }
+  ],
+  "schedule": [
+    { "time": "14:00", "event": "Opening Jump - Team Fastrax" },
+    { "time": "15:30", "event": "Aerobatic Display - Pitts Special" },
+    { "time": "16:00", "event": "Formation Display - Sky Knights" },
+    { "time": "17:30", "event": "Warbird Flyover - P-51 Mustang" },
+    { "time": "18:00", "event": "Sunset Finale - Evening Parachute Jump" }
+  ],
+  "info": {
+    "parking": "Free parking is available at the Middletown Regional Airport. Follow signs for 'Event Parking'. Shuttles will be available from designated lots.",
+    "rules": "No outside food or beverage. Clear bags only. No smoking in the hangars. All attendees must be 21+ with a valid ID to consume alcohol.",
+    "hotels": [
+      { "name": "Indigo Hotel", "link": "https://www.ihg.com/hotelindigo" },
+      { "name": "Hampton Inn Middletown", "link": "https://www.hilton.com/en/hotels/mwtohhx-hampton-middletown/" }
+    ]
+  }
+}

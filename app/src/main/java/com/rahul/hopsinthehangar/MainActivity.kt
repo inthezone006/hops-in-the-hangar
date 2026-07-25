@@ -1,5 +1,7 @@
 package com.rahul.hopsinthehangar
 
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -7,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import kotlin.OptIn
 import androidx.compose.foundation.BorderStroke
@@ -29,7 +32,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -50,6 +52,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringSetPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -67,10 +74,36 @@ import com.google.firebase.analytics.analytics
 import com.google.firebase.analytics.logEvent
 import com.rahul.hopsinthehangar.ui.theme.HopsInTheHangarTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
+
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "favorites")
+
+class FavoritesRepository(private val dataStore: DataStore<Preferences>) {
+    private val favoritesKey = stringSetPreferencesKey("favorite_ids")
+
+    val favoriteIds: Flow<Set<String>> = dataStore.data
+        .map { preferences ->
+            preferences[favoritesKey] ?: emptySet()
+        }
+
+    suspend fun toggleFavorite(id: String) {
+        dataStore.edit { preferences ->
+            val current = preferences[favoritesKey] ?: emptySet()
+            if (current.contains(id)) {
+                preferences[favoritesKey] = current - id
+            } else {
+                preferences[favoritesKey] = current + id
+            }
+        }
+    }
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,9 +134,19 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
+    val context = LocalContext.current
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    // Data Management
+    val repository = remember { FavoritesRepository(context.dataStore) }
+    val favoriteIds by repository.favoriteIds.collectAsState(initial = emptySet())
+    var eventData by remember { mutableStateOf<EventData?>(null) }
+
+    LaunchedEffect(Unit) {
+        eventData = loadEventData(context)
+    }
 
     // Log screen views
     LaunchedEffect(currentRoute) {
@@ -118,9 +161,6 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     
-    // State for favorites
-    val favoriteIds = remember { mutableStateListOf<String>() }
-
     val bottomNavItems = listOf(
         Screen.Home,
         Screen.Sponsors,
@@ -193,25 +233,32 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Home.route) { HomeScreen() }
+            composable(Screen.Home.route) { HomeScreen(eventData) }
             composable(Screen.Sponsors.route) { 
-                SponsorsScreen(onSponsorClick = { id -> 
-                    navController.navigate("detail/sponsor/$id")
-                }) 
+                SponsorsScreen(
+                    sponsors = eventData?.sponsors ?: emptyList(),
+                    onSponsorClick = { id -> 
+                        navController.navigate("detail/sponsor/$id")
+                    }
+                ) 
             }
-            composable(Screen.Entertainment.route) { EntertainmentScreen() }
+            composable(Screen.Entertainment.route) { 
+                EntertainmentScreen(
+                    schedule = eventData?.schedule ?: emptyList()
+                ) 
+            }
             composable(Screen.Vendors.route) { 
                 VendorsScreen(
+                    vendors = eventData?.vendors ?: emptyList(),
                     onVendorClick = { id -> 
                         analytics?.logEvent("vendor_detail_view") {
                             param("vendor_id", id)
                         }
                         navController.navigate("detail/vendor/$id") 
                     },
-                    favoriteIds = favoriteIds,
+                    favoriteIds = favoriteIds.toList(),
                     onToggleFavorite = { id -> 
-                        val isAdding = !favoriteIds.contains(id)
-                        if (isAdding) favoriteIds.add(id) else favoriteIds.remove(id)
+                        scope.launch { repository.toggleFavorite(id) }
                     }
                 ) 
             }
@@ -219,7 +266,12 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
             composable(Screen.Detail.route) { backStackEntry ->
                 val type = backStackEntry.arguments?.getString("type") ?: ""
                 val id = backStackEntry.arguments?.getString("id") ?: ""
-                DetailScreen(type, id)
+                val item = when(type) {
+                    "vendor" -> eventData?.vendors?.find { it.name == id }
+                    "sponsor" -> eventData?.sponsors?.find { it.name == id }
+                    else -> null
+                }
+                DetailScreen(type, id, item)
             }
         }
     }
@@ -252,7 +304,7 @@ fun VideoBackground(videoResIds: List<Int>) {
     LaunchedEffect(currentVideoIndex, videoResIds) {
         if (videoResIds.isNotEmpty()) {
             val videoResId = videoResIds[currentVideoIndex]
-            val uri = Uri.parse("android.resource://${context.packageName}/$videoResId")
+            val uri = "android.resource://${context.packageName}/$videoResId".toUri()
             exoPlayer.setMediaItem(MediaItem.fromUri(uri))
             
             // Set clipping to 7 seconds (7,000,000 microseconds)
@@ -291,8 +343,52 @@ fun VideoBackground(videoResIds: List<Int>) {
     )
 }
 
+@Serializable
+data class EventData(
+    val sponsors: List<SponsorItem>,
+    val vendors: List<VendorItem>,
+    val schedule: List<ScheduleItem>,
+    val info: GeneralInfo
+)
+
+@Serializable
+data class SponsorItem(val name: String, val level: String, val description: String)
+
+@Serializable
+data class VendorItem(
+    val name: String,
+    val category: String,
+    val description: String,
+    val email: String? = null,
+    val phone: String? = null,
+    val website: String? = null
+)
+
+@Serializable
+data class ScheduleItem(val time: String, val event: String)
+
+@Serializable
+data class GeneralInfo(
+    val parking: String,
+    val rules: String,
+    val hotels: List<HotelItem>
+)
+
+@Serializable
+data class HotelItem(val name: String, val link: String)
+
+suspend fun loadEventData(context: Context): EventData? = withContext(Dispatchers.IO) {
+    try {
+        val jsonString = context.assets.open("event_data.json").bufferedReader().use { it.readText() }
+        Json.decodeFromString<EventData>(jsonString)
+    } catch (e: Exception) {
+        Log.e("DataLoader", "Error loading event data", e)
+        null
+    }
+}
+
 @Composable
-fun HomeScreen() {
+fun HomeScreen(eventData: EventData?) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -359,11 +455,58 @@ fun HomeScreen() {
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    "Experience the thrill of aviation and the taste of local craft beer at the Middletown Regional Airport.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
+                    "Welcome to Hops in the Hangar, your ultimate Craft Beer & Airshow event app! Explore a lineup of vendors and sponsors, discover detailed venue information, find the best hotels nearby, enjoy exciting entertainment, and get to know the featured airshow performers.\n\nCraft beer, beverages, and aircraft come together to create not only a fun social event, but also an extremely unique community experience. Hops in the Hangar celebrates aviation, local businesses, and great craft beverages while bringing people together for an unforgettable evening at the Middletown Regional Airport.\n\nWhether you're here for the thrilling air show performances, the incredible selection of breweries and beverage vendors, or simply to enjoy time with friends and family, this app will help you make the most of your experience. Stay connected with schedules, updates, event maps, and everything you need for an amazing experience at Hops in the Hangar 2026.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Start,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                 )
+            }
+        }
+        
+        if (eventData != null) {
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            Text(
+                "VENUE & LOGISTICS",
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.sp
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            ElevatedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text("Parking", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text(eventData.info.parking, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text("Event Rules", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text(eventData.info.rules, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text("Nearby Hotels", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    val context = LocalContext.current
+                    eventData.info.hotels.forEach { hotel ->
+                        TextButton(
+                            onClick = { 
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(hotel.link))
+                                context.startActivity(intent)
+                            },
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text(hotel.name, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
             }
         }
         
@@ -502,30 +645,8 @@ fun GlassCard(title: String, description: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SponsorsScreen(onSponsorClick: (String) -> Unit) {
+fun SponsorsScreen(sponsors: List<SponsorItem>, onSponsorClick: (String) -> Unit) {
     var searchQuery by remember { mutableStateOf("") }
-    val sponsors = remember {
-        listOf(
-            SponsorItem("City of Middletown & MWO", "Top Flight", "Top Flight Airshow Sponsor"),
-            SponsorItem("Start Skydiving & Team Fastrax", "First Class", "First Class Sponsor"),
-            SponsorItem("Safe Skies Aviation, LLC", "Business Class", "Business Class Sponsor"),
-            SponsorItem("Balloon Dog Events", "Business Class", "Business Class Sponsor"),
-            SponsorItem("Thread Headz", "Business Class", "Business Class Sponsor"),
-            SponsorItem("Lewis Horticultural Service", "Business Class", "Business Class Sponsor"),
-            SponsorItem("BB Tech Services", "Business Class", "Business Class Sponsor"),
-            SponsorItem("Middletown Community Foundation", "Coach Class", "Coach Class Sponsor"),
-            SponsorItem("Askren Balloon Team", "Coach Class", "Coach Class Sponsor"),
-            SponsorItem("Hartzell Propeller", "Coach Class", "Coach Class Sponsor"),
-            SponsorItem("Valley Central Bank", "Passport", "Passport Sponsor"),
-            SponsorItem("Midwest Air Recovery", "Passport", "Passport Sponsor"),
-            SponsorItem("Big Daddy Dumpsters", "Passport", "Passport Sponsor"),
-            SponsorItem("Miami Valley Propane", "Passport", "Passport Sponsor"),
-            SponsorItem("Phillips Tube Group", "Passport", "Passport Sponsor"),
-            SponsorItem("Kara Goheen Friends & Furball", "Passport", "Passport Sponsor"),
-            SponsorItem("New Ales Brewing", "Brewery", "Sponsoring Brewery")
-        )
-    }
-
     val filteredSponsors = sponsors.filter {
         it.name.contains(searchQuery, ignoreCase = true) || it.level.contains(searchQuery, ignoreCase = true)
     }
@@ -601,28 +722,12 @@ fun SponsorsScreen(onSponsorClick: (String) -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VendorsScreen(
+    vendors: List<VendorItem>,
     onVendorClick: (String) -> Unit,
     favoriteIds: List<String>,
     onToggleFavorite: (String) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    val vendors = remember {
-        listOf(
-            VendorItem("High Grain Brewing", "Brewery", "Cincinnati, OH"),
-            VendorItem("Dafuque beer company", "Brewery", "Local Favorite"),
-            VendorItem("Streetside Brewery", "Brewery", "Cincinnati, OH"),
-            VendorItem("Loose Ends Brewing", "Brewery", "Centerville, OH"),
-            VendorItem("Third eye brewing", "Brewery", "Sharonville, OH"),
-            VendorItem("Gravel Road Brewing Co", "Brewery", "Middletown, OH"),
-            VendorItem("Depot Brewing Company", "Brewery", "Fairborn, OH"),
-            VendorItem("Sonder Brewing", "Brewery", "Mason, OH"),
-            VendorItem("Stevens Point Brewery", "Brewery", "Stevens Point, WI"),
-            VendorItem("Heavier Than Air Brewing Co", "Brewery", "Centerville, OH"),
-            VendorItem("NEW Ales", "Brewery", "Middletown, OH"),
-            VendorItem("BC's Brewing Company", "Brewery", "Mason, OH")
-        )
-    }
-
     val filteredVendors = vendors.filter {
         it.name.contains(searchQuery, ignoreCase = true) || it.category.contains(searchQuery, ignoreCase = true)
     }
@@ -704,7 +809,19 @@ fun VendorsScreen(
 }
 
 @Composable
-fun DetailScreen(type: String, id: String) {
+fun DetailScreen(type: String, id: String, item: Any?) {
+    val context = LocalContext.current
+    
+    val description = when (item) {
+        is VendorItem -> item.description
+        is SponsorItem -> item.description
+        else -> "Detailed information for $id"
+    }
+
+    val email = if (item is VendorItem) item.email else null
+    val phone = if (item is VendorItem) item.phone else null
+    val website = if (item is VendorItem) item.website else null
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -761,32 +878,65 @@ fun DetailScreen(type: String, id: String) {
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "This is where detailed information about $id would go. You can edit this to include menus, full biographies, or special event offers for this specific $type.",
+                    text = description,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                 )
             }
         }
         
-        ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text(
-                    "Contact Information", 
-                    style = MaterialTheme.typography.titleMedium, 
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                DetailContactRow(icon = Icons.Default.Email, value = "info@$id.com")
-                Spacer(modifier = Modifier.height(12.dp))
-                DetailContactRow(icon = Icons.Default.Phone, value = "(555) 012-3456")
-                Spacer(modifier = Modifier.height(12.dp))
-                DetailContactRow(icon = Icons.Default.Language, value = "www.$id.com")
+        if (email != null || phone != null || website != null) {
+            ElevatedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text(
+                        "Contact Information", 
+                        style = MaterialTheme.typography.titleMedium, 
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    email?.let { 
+                        DetailContactRow(
+                            icon = Icons.Default.Email, 
+                            value = it,
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                    data = Uri.parse("mailto:$it")
+                                }
+                                context.startActivity(intent)
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                    phone?.let { 
+                        DetailContactRow(
+                            icon = Icons.Default.Phone, 
+                            value = it,
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_DIAL).apply {
+                                    data = Uri.parse("tel:$it")
+                                }
+                                context.startActivity(intent)
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                    website?.let { 
+                        DetailContactRow(
+                            icon = Icons.Default.Language, 
+                            value = it,
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(it))
+                                context.startActivity(intent)
+                            }
+                        )
+                    }
+                }
             }
         }
         
@@ -795,17 +945,23 @@ fun DetailScreen(type: String, id: String) {
 }
 
 @Composable
-fun DetailContactRow(icon: ImageVector, value: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+fun DetailContactRow(icon: ImageVector, value: String, onClick: () -> Unit = {}) {
+    TextButton(
+        onClick = onClick,
+        contentPadding = PaddingValues(0.dp),
+        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EntertainmentScreen() {
+fun EntertainmentScreen(schedule: List<ScheduleItem>) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -830,7 +986,7 @@ fun EntertainmentScreen() {
                 ListItem(
                     headlineContent = { Text("Wild Bill", fontWeight = FontWeight.Bold) },
                     supportingContent = { Text("Steven Hanshew") },
-                    overlineContent = { Text("ANNNOUNCER", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall) },
+                    overlineContent = { Text("ANNOUNCER", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall) },
                     leadingContent = { 
                         Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), modifier = Modifier.size(40.dp)) {
                             Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Mic, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) }
@@ -861,24 +1017,16 @@ fun EntertainmentScreen() {
             letterSpacing = 1.sp
         )
 
-        val schedule = listOf(
-            "14:00" to "Opening Jump - Team Fastrax",
-            "15:30" to "Aerobatic Display - Pitts Special",
-            "16:00" to "Formation Display - Sky Knights",
-            "17:30" to "Warbird Flyover - P-51 Mustang",
-            "18:00" to "Sunset Finale - Evening Parachute Jump"
-        )
-
         ElevatedCard(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                schedule.forEachIndexed { index, (time, event) ->
+                schedule.forEachIndexed { index, item ->
                     ListItem(
-                        headlineContent = { Text(event, fontWeight = FontWeight.Bold) },
-                        supportingContent = { Text(time, color = MaterialTheme.colorScheme.primary) },
+                        headlineContent = { Text(item.event, fontWeight = FontWeight.Bold) },
+                        supportingContent = { Text(item.time, color = MaterialTheme.colorScheme.primary) },
                         leadingContent = { 
                             Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f), modifier = Modifier.size(40.dp)) {
                                 Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Event, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) }
@@ -1176,9 +1324,6 @@ fun hitTest(path: Path, x: Float, y: Float): Boolean {
     
     return region.contains(x.toInt(), y.toInt())
 }
-
-data class SponsorItem(val name: String, val level: String, val description: String)
-data class VendorItem(val name: String, val category: String, val description: String)
 
 @Preview(showBackground = true)
 @Composable
