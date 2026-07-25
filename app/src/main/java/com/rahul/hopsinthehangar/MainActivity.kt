@@ -2,13 +2,17 @@ package com.rahul.hopsinthehangar
 
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import kotlin.OptIn
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,10 +30,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -55,7 +65,11 @@ import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.analytics
 import com.google.firebase.analytics.logEvent
 import com.rahul.hopsinthehangar.ui.theme.HopsInTheHangarTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.xmlpull.v1.XmlPullParser
+import org.xmlpull.v1.XmlPullParserFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -874,64 +888,285 @@ fun EntertainmentScreen() {
 
 @Composable
 fun MapScreen() {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Surface(
-            modifier = Modifier.size(120.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Default.LocationOn, 
-                    contentDescription = null, 
-                    modifier = Modifier.size(64.dp), 
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-        
-        Spacer(Modifier.height(32.dp))
-        
-        Text(
-            text = "Event Map Coming Soon", 
-            style = MaterialTheme.typography.headlineSmall, 
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        
-        Spacer(Modifier.height(12.dp))
-        
-        Text(
-            text = "Interactive Middletown Regional Airport map will be available on event day.", 
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-        )
-        
-        Spacer(Modifier.height(48.dp))
-        
-        ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Row(
-                modifier = Modifier.padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.Navigation, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text("Airport Address", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                    Text("1707 Run Way, Middletown, OH 45042", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                }
+    val context = LocalContext.current
+    var regions by remember { mutableStateOf<List<MapRegion>>(emptyList()) }
+    var selectedRegionId by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Transformation state
+    var zoomScale by remember { mutableFloatStateOf(1f) }
+    var panOffset by remember { mutableStateOf(Offset.Zero) }
+
+    // Constants for SVG viewport
+    val svgWidth = 2000f
+    val svgHeight = 2000f
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            try {
+                val parsedRegions = parseSvg(context, "map.svg")
+                regions = parsedRegions
+                isLoading = false
+            } catch (e: Exception) {
+                Log.e("MapScreen", "Error parsing SVG", e)
+                isLoading = false
             }
         }
     }
+
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).clipToBounds()) {
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        } else {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize().clipToBounds()) {
+                val canvasWidth = constraints.maxWidth.toFloat()
+                val canvasHeight = constraints.maxHeight.toFloat()
+                
+                // Base scale to fit SVG to screen
+                val baseScaleX = canvasWidth / svgWidth
+                val baseScaleY = canvasHeight / svgHeight
+                val baseScale = minOf(baseScaleX, baseScaleY)
+                
+                // Centering offsets
+                val baseOffsetX = (canvasWidth - (svgWidth * baseScale)) / 2f
+                val baseOffsetY = (canvasHeight - (svgHeight * baseScale)) / 2f
+                
+                val primaryColor = MaterialTheme.colorScheme.primary
+
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(regions) {
+                            detectTransformGestures { centroid, pan, zoom, _ ->
+                                val oldScale = zoomScale
+                                val newScale = (oldScale * zoom).coerceIn(1f, 10f)
+                                val scaleFactor = newScale / oldScale
+                                
+                                // Centric zoom: panOffset' = pan + panOffset * scaleFactor + (centroid - baseOffset) * (1 - scaleFactor)
+                                val baseOffset = Offset(baseOffsetX, baseOffsetY)
+                                panOffset = (panOffset * scaleFactor) + (centroid - baseOffset) * (1f - scaleFactor) + pan
+                                zoomScale = newScale
+                            }
+                        }
+                        .pointerInput(regions, zoomScale, panOffset) {
+                            detectTapGestures { offset ->
+                                // Calculate coordinate in SVG space
+                                val svgX = (offset.x - baseOffsetX - panOffset.x) / (baseScale * zoomScale)
+                                val svgY = (offset.y - baseOffsetY - panOffset.y) / (baseScale * zoomScale)
+                                
+                                // Hit test clickable regions only
+                                val clickedRegion = regions.findLast { region ->
+                                    region.isClickable && hitTest(region.path, svgX, svgY)
+                                }
+                                
+                                selectedRegionId = clickedRegion?.id
+                            }
+                        }
+                ) {
+                    drawIntoCanvas { canvas ->
+                        canvas.save()
+                        
+                        // Apply transformations
+                        canvas.translate(baseOffsetX + panOffset.x, baseOffsetY + panOffset.y)
+                        canvas.scale(baseScale * zoomScale, baseScale * zoomScale)
+                        
+                        regions.forEach { region ->
+                            val isSelected = region.id == selectedRegionId
+                            drawPath(
+                                path = region.path,
+                                color = if (isSelected) primaryColor else region.color,
+                                style = Fill
+                            )
+                            // Draw outline for selected
+                            if (isSelected) {
+                                drawPath(
+                                    path = region.path,
+                                    color = Color.Black,
+                                    style = Stroke(width = 2f / (baseScale * zoomScale))
+                                )
+                            }
+                        }
+                        canvas.restore()
+                    }
+                }
+                
+                // Overlay Info Header
+                Surface(
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter),
+                    shadowElevation = 8.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = selectedRegionId ?: "Interactive Event Map",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (selectedRegionId != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = if (selectedRegionId != null) "Middletown Regional Airport" else "Pinch to zoom • Drag to pan",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (zoomScale != 1f || panOffset != Offset.Zero) {
+                            IconButton(onClick = {
+                                zoomScale = 1f
+                                panOffset = Offset.Zero
+                            }) {
+                                Icon(Icons.Default.Refresh, contentDescription = "Reset View")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+}
+
+data class MapRegion(
+    val id: String,
+    val path: Path,
+    val color: Color,
+    val isClickable: Boolean = true
+)
+
+fun parseSvg(context: android.content.Context, fileName: String): List<MapRegion> {
+    val regions = mutableListOf<MapRegion>()
+    val factory = XmlPullParserFactory.newInstance()
+    val parser = factory.newPullParser()
+    val inputStream = context.assets.open(fileName)
+    parser.setInput(inputStream, null)
+
+    var eventType = parser.eventType
+    val groupIds = mutableListOf<String>()
+    
+    // Non-clickable layer IDs
+    val backgroundIds = setOf("Event Map Base", "Full Event Map")
+
+    while (eventType != XmlPullParser.END_DOCUMENT) {
+        val tagName = parser.name
+        when (eventType) {
+            XmlPullParser.START_TAG -> {
+                val id = parser.getAttributeValue(null, "id")
+                val transform = parser.getAttributeValue(null, "transform")
+                
+                if (tagName == "g") {
+                    groupIds.add(id ?: "")
+                } else {
+                    val fill = parser.getAttributeValue(null, "fill") ?: "#000000"
+                    val color = try { Color(android.graphics.Color.parseColor(fill)) } catch (_: Exception) { Color.Gray }
+                    val finalId = id ?: groupIds.lastOrNull { it.isNotEmpty() }
+                    val isClickable = finalId != null && !backgroundIds.contains(finalId)
+
+                    // Skip drawing the very base white rectangle if it's "Event Map Base"
+                    val shouldSkip = finalId == "Event Map Base" && tagName == "rect"
+
+                    if (!shouldSkip) {
+                        when (tagName) {
+                            "path" -> {
+                                val d = parser.getAttributeValue(null, "d")
+                                if (d != null) {
+                                    try {
+                                        val androidPath = PathParser().parsePathString(d).toPath().asAndroidPath()
+                                        applySvgTransform(androidPath, transform)
+                                        regions.add(MapRegion(finalId ?: "path_${regions.size}", androidPath.asComposePath(), color, isClickable))
+                                    } catch (_: Exception) { Log.e("MapParser", "Error parsing path") }
+                                }
+                            }
+                            "rect", "ellipse" -> {
+                                val androidPath = android.graphics.Path()
+                                if (tagName == "rect") {
+                                    val x = parser.getAttributeValue(null, "x")?.toFloat() ?: 0f
+                                    val y = parser.getAttributeValue(null, "y")?.toFloat() ?: 0f
+                                    val width = parser.getAttributeValue(null, "width")?.toFloat() ?: 0f
+                                    val height = parser.getAttributeValue(null, "height")?.toFloat() ?: 0f
+                                    androidPath.addRect(x, y, x + width, y + height, android.graphics.Path.Direction.CW)
+                                } else {
+                                    val cx = parser.getAttributeValue(null, "cx")?.toFloat() ?: 0f
+                                    val cy = parser.getAttributeValue(null, "cy")?.toFloat() ?: 0f
+                                    val rx = parser.getAttributeValue(null, "rx")?.toFloat() ?: 0f
+                                    val ry = parser.getAttributeValue(null, "ry")?.toFloat() ?: 0f
+                                    androidPath.addOval(cx - rx, cy - ry, cx + rx, cy + ry, android.graphics.Path.Direction.CW)
+                                }
+
+                                applySvgTransform(androidPath, transform)
+                                regions.add(MapRegion(finalId ?: "${tagName}_${regions.size}", androidPath.asComposePath(), color, isClickable))
+                            }
+                        }
+                    }
+                }
+            }
+            XmlPullParser.END_TAG -> {
+                if (tagName == "g" && groupIds.isNotEmpty()) {
+                    groupIds.removeAt(groupIds.size - 1)
+                }
+            }
+        }
+        eventType = parser.next()
+    }
+    inputStream.close()
+    return regions
+}
+
+private fun applySvgTransform(path: android.graphics.Path, transform: String?) {
+    if (transform == null) return
+    val matrix = android.graphics.Matrix()
+    
+    // Robust parsing for rotate(angle [cx cy])
+    if (transform.contains("rotate")) {
+        val content = transform.substringAfter("rotate(").substringBefore(")")
+        val values = content.split(Regex("[ ,]+")).filter { it.isNotEmpty() }
+        try {
+            when (values.size) {
+                1 -> matrix.postRotate(values[0].toFloat())
+                3 -> matrix.postRotate(values[0].toFloat(), values[1].toFloat(), values[2].toFloat())
+            }
+        } catch (_: Exception) {}
+    }
+    
+    // Support for basic translate(x [y])
+    if (transform.contains("translate")) {
+        val content = transform.substringAfter("translate(").substringBefore(")")
+        val values = content.split(Regex("[ ,]+")).filter { it.isNotEmpty() }
+        try {
+            when (values.size) {
+                1 -> matrix.postTranslate(values[0].toFloat(), 0f)
+                2 -> matrix.postTranslate(values[0].toFloat(), values[1].toFloat())
+            }
+        } catch (_: Exception) {}
+    }
+    
+    path.transform(matrix)
+}
+
+fun hitTest(path: Path, x: Float, y: Float): Boolean {
+    val androidPath = path.asAndroidPath()
+    val bounds = android.graphics.RectF()
+    androidPath.computeBounds(bounds, true)
+    
+    val region = android.graphics.Region()
+    region.setPath(androidPath, android.graphics.Region(
+        bounds.left.toInt(),
+        bounds.top.toInt(),
+        bounds.right.toInt(),
+        bounds.bottom.toInt()
+    ))
+    
+    return region.contains(x.toInt(), y.toInt())
 }
 
 data class SponsorItem(val name: String, val level: String, val description: String)
