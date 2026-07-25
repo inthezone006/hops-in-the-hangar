@@ -9,6 +9,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import kotlin.OptIn
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -303,29 +304,36 @@ fun HomeScreen() {
     ) {
         Spacer(modifier = Modifier.height(24.dp))
         
-        Text(
-            "HOPS IN THE\nHANGAR",
-            style = MaterialTheme.typography.displayLarge.copy(
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.primary,
-                lineHeight = MaterialTheme.typography.displayLarge.lineHeight * 0.85
-            ),
-            textAlign = TextAlign.Center
-        )
+        Surface(
+            modifier = Modifier.size(140.dp),
+            shape = CircleShape,
+            color = Color.White, // Use white background for the circle
+            border = BorderStroke(3.dp, Color.White)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                AsyncImage(
+                    model = R.mipmap.ic_launcher,
+                    contentDescription = "App Icon",
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(CircleShape)
+                )
+            }
+        }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
         Surface(
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-            shape = RoundedCornerShape(8.dp)
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+            shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                "2026 EDITION",
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                "HOPS IN THE HANGAR",
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                 style = MaterialTheme.typography.labelLarge.copy(
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 4.sp
+                    letterSpacing = 2.sp
                 )
             )
         }
@@ -892,7 +900,6 @@ fun MapScreen() {
     var regions by remember { mutableStateOf<List<MapRegion>>(emptyList()) }
     var selectedRegionId by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
-    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Transformation state
@@ -938,6 +945,7 @@ fun MapScreen() {
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
+                        .clipToBounds() // Ensure map doesn't draw outside the canvas area
                         .pointerInput(regions) {
                             detectTransformGestures { centroid, pan, zoom, _ ->
                                 val oldScale = zoomScale
