@@ -19,18 +19,18 @@
     { "name": "New Ales Brewing", "level": "Brewery", "description": "Sponsoring Brewery" }
   ],
   "vendors": [
-    { "name": "High Grain Brewing", "category": "Brewery", "description": "Cincinnati, OH", "email": "info@highgrainbrewing.com", "phone": "513-123-4567", "website": "https://highgrainbrewing.com" },
-    { "name": "Dafuque beer company", "category": "Brewery", "description": "Local Favorite", "website": "https://dafuquebeer.com" },
-    { "name": "Streetside Brewery", "category": "Brewery", "description": "Cincinnati, OH" },
-    { "name": "Loose Ends Brewing", "category": "Brewery", "description": "Centerville, OH" },
-    { "name": "Third eye brewing", "category": "Brewery", "description": "Sharonville, OH" },
-    { "name": "Gravel Road Brewing Co", "category": "Brewery", "description": "Middletown, OH" },
-    { "name": "Depot Brewing Company", "category": "Brewery", "description": "Fairborn, OH" },
-    { "name": "Sonder Brewing", "category": "Brewery", "description": "Mason, OH" },
-    { "name": "Stevens Point Brewery", "category": "Brewery", "description": "Stevens Point, WI" },
-    { "name": "Heavier Than Air Brewing Co", "category": "Brewery", "description": "Centerville, OH" },
-    { "name": "NEW Ales", "category": "Brewery", "description": "Middletown, OH" },
-    { "name": "BC's Brewing Company", "category": "Brewery", "description": "Mason, OH" }
+    { "name": "High Grain Brewing", "category": "Brewery", "description": "Cincinnati, OH", "email": "info@highgrainbrewing.com", "phone": "513-620-8300", "website": "https://highgrainbrewing.com" },
+    { "name": "Dafuque Beer Company", "category": "Brewery", "description": "Local Favorite", "email": "info@dafuquebeer.com", "phone": "614-204-5147", "website": "https://dafuquebeer.com" },
+    { "name": "Streetside Brewery", "category": "Brewery", "description": "Cincinnati, OH", "email": "info@streetsidebrewery.com", "phone": "513-615-5877", "website": "https://streetsidebrewery.com" },
+    { "name": "Loose Ends Brewing", "category": "Brewery", "description": "Centerville, OH", "email": "info@looseendsbrewing.com", "phone": "937-723-6328", "website": "https://www.looseendsbrewing.com" },
+    { "name": "Third eye brewing", "category": "Brewery", "description": "Sharonville, OH", "email": "info@thirdeyebrewingco.com", "phone": "513-771-2739", "website": "https://thirdeyebrewingco.com" },
+    { "name": "Gravel Road Brewing Co", "category": "Brewery", "description": "Middletown, OH", "email": "contact@gravelroadbrewing.com", "phone": "513-594-8251", "website": "http://gravelroadbrewing.com" },
+    { "name": "Depot Brewing Company", "category": "Brewery", "description": "Fairborn, OH", "email": "contact@depotbrewing.com", "phone": "513-796-3661", "website": "https://www.depotbrewing.com" },
+    { "name": "Sonder Brewing", "category": "Brewery", "description": "Mason, OH", "email": "contactus@sonderbrewing.com", "phone": "513-779-2739", "website": "https://sonderbrewing.com" },
+    { "name": "Stevens Point Brewery", "category": "Brewery", "description": "Stevens Point, WI", "email": "info@pointbeer.com", "phone": "715-344-9310", "website": "https://www.pointbeer.com" },
+    { "name": "Heavier Than Air Brewing Co", "category": "Brewery", "description": "Centerville, OH", "email": "info@heavierthanairbrewing.com", "phone": "937-433-1500", "website": "https://heavierthanairbrewing.com" },
+    { "name": "NEW Ales", "category": "Brewery", "description": "Middletown, OH", "email": "middletownbeerandsandwiches@gmail.com", "phone": "513-915-7023", "website": "https://www.newalesbrewing.com" },
+    { "name": "BC's Brewing Company", "category": "Brewery", "description": "Mason, OH", "email": "info@bcsbrewing.com", "phone": "513-847-6866", "website": "https://www.bcsbrewing.com" }
   ],
   "schedule": [
     { "time": "14:00", "event": "Opening Jump - Team Fastrax" },
