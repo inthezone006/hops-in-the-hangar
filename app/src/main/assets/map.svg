@@ -1,0 +1,68 @@
+<svg width="2000" height="2000" viewBox="0 0 2000 2000" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Event Map Base">
+<rect width="2000" height="2000" fill="white"/>
+<path id="Full Event Map" fill-rule="evenodd" clip-rule="evenodd" d="M51 459H1187V621H1949V1468H906V1371H625V1468H51V459Z" fill="#D9D9D9"/>
+<rect id="Food Truck 1" x="434" y="1359" width="111" height="38" fill="#008000"/>
+<ellipse id="Plane 4" cx="141.5" cy="1009.5" rx="37.5" ry="35.5" fill="#FF0000"/>
+<ellipse id="Plane 3" cx="141.5" cy="902.5" rx="37.5" ry="35.5" fill="#FF0000"/>
+<rect id="Sponsor Tent 3" x="572" y="1108" width="66" height="38" fill="black"/>
+<rect id="Sponsor Tent 4" x="654" y="1108" width="66" height="38" fill="black"/>
+<rect id="Sponsor Test 5" x="736" y="1108" width="66" height="38" fill="black"/>
+<rect id="Sponsor Test 7" x="868" y="540" width="66" height="38" fill="black"/>
+<rect id="Beer Booth 1" x="943" y="724" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 3" x="1166" y="689" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 4" x="1242" y="689" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 5" x="1318" y="689" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 6" x="1394" y="689" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 7" x="1470" y="689" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 8" x="1546" y="689" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 9" x="1622" y="689" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 10" x="1698" y="689" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 11" x="1774" y="689" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 18" x="1868" y="1127" width="48" height="19" transform="rotate(-90 1868 1127)" fill="#0088FF"/>
+<rect id="Beer Booth 19" x="1868" y="1194" width="48" height="19" transform="rotate(-90 1868 1194)" fill="#0088FF"/>
+<rect id="Beer Booth 13" x="1868" y="823" width="48" height="19" transform="rotate(-90 1868 823)" fill="#0088FF"/>
+<rect id="Beer Booth 17" x="1868" y="1064" width="48" height="19" transform="rotate(-90 1868 1064)" fill="#0088FF"/>
+<rect id="Beer Booth 16" x="1868" y="1006" width="48" height="19" transform="rotate(-90 1868 1006)" fill="#0088FF"/>
+<rect id="Beer Booth 15" x="1868" y="944" width="48" height="19" transform="rotate(-90 1868 944)" fill="#0088FF"/>
+<rect id="Beer Booth 14" x="1868" y="882" width="48" height="19" transform="rotate(-90 1868 882)" fill="#0088FF"/>
+<rect id="Beer Booth 12" x="1877.94" y="755.376" width="48" height="19" transform="rotate(-135 1877.94 755.376)" fill="#0088FF"/>
+<rect id="Beer Booth 29" x="1128" y="1207" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 28" x="1204" y="1207" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 27" x="1280" y="1207" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 26" x="1356" y="1207" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 25" x="1432" y="1207" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 24" x="1508" y="1207" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 23" x="1584" y="1207" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 22" x="1660" y="1207" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 21" x="1736" y="1207" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 20" x="1812" y="1207" width="48" height="19" fill="#0088FF"/>
+<rect id="Beer Booth 2" x="1013" y="724" width="48" height="19" fill="#0088FF"/>
+<rect id="Sponsor Test 8" x="769" y="540" width="66" height="38" fill="black"/>
+<rect id="Sponsor Tent 6" x="818" y="1108" width="66" height="38" fill="black"/>
+<rect id="DJ Booth" x="865" y="936" width="91" height="38" transform="rotate(-90 865 936)" fill="#CB30E0"/>
+<path id="VIP Tent" d="M944 689V613H1061V689H944Z" fill="#FF8D28"/>
+<path id="Hops in the Hangar Information Tent" d="M1059 1012V936H1176V1012H1059Z" fill="#00C8B3"/>
+<g id="Pretzel Booth">
+<path d="M1059 1108V1032H1176V1108H1059Z" fill="#AC7F5E"/>
+<path d="M944 689V613H1061V689H944Z" fill="#00C0E8"/>
+<path d="M1191.5 882.5V844H1242V882.5H1191.5Z" fill="#D0BCFF"/>
+<path d="M1617 1070.5V1032H1667.5V1070.5H1617Z" fill="#6B2F45"/>
+</g>
+<rect id="Pilot Tent" x="792" y="535" width="76" height="117" transform="rotate(-90 792 535)" fill="#FFCC00"/>
+<rect id="Sponsor Tent 2" x="490" y="1108" width="66" height="38" fill="black"/>
+<rect id="Food Truck 2" x="274" y="1359" width="111" height="38" fill="#008000"/>
+<rect id="Food Truck 7" x="705.489" y="605.359" width="111" height="38" transform="rotate(-135 705.489 605.359)" fill="#008000"/>
+<rect id="Food Truck 8" x="798.489" y="699.359" width="111" height="38" transform="rotate(-135 798.489 699.359)" fill="#008000"/>
+<rect id="Food Truck 4" x="967" y="1359" width="111" height="38" fill="#008000"/>
+<rect id="Food Truck 5" x="1110" y="1359" width="111" height="38" fill="#008000"/>
+<rect id="Food Truck 6" x="1270" y="1397" width="111" height="38" transform="rotate(-90 1270 1397)" fill="#008000"/>
+<rect id="Portapotty" x="1375" y="1397" width="111" height="38" transform="rotate(-90 1375 1397)" fill="#000080"/>
+<rect id="Sponsor Tent 1" x="408" y="1108" width="66" height="38" fill="black"/>
+<rect id="Food Truck 3" x="161.273" y="1240.24" width="111" height="38" transform="rotate(53 161.273 1240.24)" fill="#008000"/>
+<ellipse id="Plane 2" cx="141.5" cy="795.5" rx="37.5" ry="35.5" fill="#FF0000"/>
+<ellipse id="Plane 1" cx="141.5" cy="688.5" rx="37.5" ry="35.5" fill="#FF0000"/>
+<path id="Tables, Water Stations, Cornhole" d="M523 699L556.902 790.555H666.61L577.854 847.14L611.756 938.695L523 882.111L434.244 938.695L468.146 847.14L379.39 790.555H489.098L523 699Z" fill="#FFC0CB"/>
+<path id="Airplane Play" d="M1448 832L1539.8 991.75H1356.2L1448 832Z" fill="#BF6A02"/>
+</g>
+</svg>
