@@ -1,22 +1,38 @@
 {
   "sponsors": [
-    { "name": "City of Middletown & MWO", "level": "Top Flight", "description": "Top Flight Airshow Sponsor" },
-    { "name": "Start Skydiving & Team Fastrax", "level": "First Class", "description": "First Class Sponsor" },
-    { "name": "Safe Skies Aviation, LLC", "level": "Business Class", "description": "Business Class Sponsor" },
-    { "name": "Balloon Dog Events", "level": "Business Class", "description": "Business Class Sponsor" },
-    { "name": "Thread Headz", "level": "Business Class", "description": "Business Class Sponsor" },
-    { "name": "Lewis Horticultural Service", "level": "Business Class", "description": "Business Class Sponsor" },
-    { "name": "BB Tech Services", "level": "Business Class", "description": "Business Class Sponsor" },
-    { "name": "Middletown Community Foundation", "level": "Coach Class", "description": "Coach Class Sponsor" },
-    { "name": "Askren Balloon Team", "level": "Coach Class", "description": "Coach Class Sponsor" },
-    { "name": "Hartzell Propeller", "level": "Coach Class", "description": "Coach Class Sponsor" },
-    { "name": "Valley Central Bank", "level": "Passport", "description": "Passport Sponsor" },
-    { "name": "Midwest Air Recovery", "level": "Passport", "description": "Passport Sponsor" },
-    { "name": "Big Daddy Dumpsters", "level": "Passport", "description": "Passport Sponsor" },
-    { "name": "Miami Valley Propane", "level": "Passport", "description": "Passport Sponsor" },
-    { "name": "Phillips Tube Group", "level": "Passport", "description": "Passport Sponsor" },
-    { "name": "Kara Goheen Friends & Furball", "level": "Passport", "description": "Passport Sponsor" },
-    { "name": "New Ales Brewing", "level": "Brewery", "description": "Sponsoring Brewery" }
+    {
+      "name": "City of Middletown & MWO",
+      "level": "Top Flight",
+      "description": "Top Flight Airshow Sponsor",
+      "links": [
+        { "label": "City of Middletown", "url": "https://www.cityofmiddletown.org" },
+        { "label": "MWO (Middletown Regional Airport)", "url": "https://flymwo.com" }
+      ]
+    },
+    {
+      "name": "Start Skydiving & Team Fastrax",
+      "level": "First Class",
+      "description": "First Class Sponsor",
+      "links": [
+        { "label": "Start Skydiving", "url": "https://startskydiving.com" },
+        { "label": "Team Fastrax", "url": "https://teamfastrax.com" }
+      ]
+    },
+    { "name": "Safe Skies Aviation, LLC", "level": "Business Class", "description": "Business Class Sponsor", "website": "https://safeskiesaviation.com" },
+    { "name": "Balloon Dog Events", "level": "Business Class", "description": "Business Class Sponsor", "website": "https://www.balloondogevents.com" },
+    { "name": "Thread Headz", "level": "Business Class", "description": "Business Class Sponsor", "website": "https://www.threadheadz.com" },
+    { "name": "Lewis Horticultural Service", "level": "Business Class", "description": "Business Class Sponsor", "website": "http://lewishorticultural.com" },
+    { "name": "BB Tech Services", "level": "Business Class", "description": "Business Class Sponsor", "website": "https://bbtechservices.com" },
+    { "name": "Middletown Community Foundation", "level": "Coach Class", "description": "Coach Class Sponsor", "website": "https://mcfoundation.org" },
+    { "name": "Askren Balloon Team", "level": "Coach Class", "description": "Coach Class Sponsor", "website": "http://askrenballoonteam.com" },
+    { "name": "Hartzell Propeller", "level": "Coach Class", "description": "Coach Class Sponsor", "website": "https://hartzellprop.com" },
+    { "name": "Valley Central Bank", "level": "Passport", "description": "Passport Sponsor", "website": "https://valleycentral.org" },
+    { "name": "Midwest Air Recovery", "level": "Passport", "description": "Passport Sponsor", "website": "http://midwestairrecovery.com" },
+    { "name": "Big Daddy Dumpsters", "level": "Passport", "description": "Passport Sponsor", "website": "https://bigdaddydumpsters.com" },
+    { "name": "Miami Valley Propane", "level": "Passport", "description": "Passport Sponsor", "website": "https://mvpropane.com" },
+    { "name": "Phillips Tube Group", "level": "Passport", "description": "Passport Sponsor", "website": "https://phillipstube.com" },
+    { "name": "Kara Goheen Friends & Furball", "level": "Passport", "description": "Passport Sponsor", "website": "https://furballmiddletown.com" },
+    { "name": "New Ales Brewing", "level": "Brewery", "description": "Sponsoring Brewery", "website": "https://www.newalesbrewing.com" }
   ],
   "vendors": [
     { "name": "High Grain Brewing", "category": "Brewery", "description": "Cincinnati, OH", "email": "info@highgrainbrewing.com", "phone": "513-620-8300", "website": "https://highgrainbrewing.com", "mapId": "Beer Booth 1" },

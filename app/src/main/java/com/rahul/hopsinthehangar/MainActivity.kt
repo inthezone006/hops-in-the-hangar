@@ -15,6 +15,7 @@ import kotlin.OptIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
@@ -353,7 +354,16 @@ data class EventData(
 )
 
 @Serializable
-data class SponsorItem(val name: String, val level: String, val description: String)
+data class SponsorLink(val label: String, val url: String)
+
+@Serializable
+data class SponsorItem(
+    val name: String,
+    val level: String,
+    val description: String,
+    val website: String? = null,
+    val links: List<SponsorLink>? = null
+)
 
 @Serializable
 data class VendorItem(
@@ -633,9 +643,61 @@ fun GlassCard(title: String, description: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SponsorsScreen(sponsors: List<SponsorItem>, onSponsorClick: (String) -> Unit) {
+    val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     val filteredSponsors = sponsors.filter {
         it.name.contains(searchQuery, ignoreCase = true) || it.level.contains(searchQuery, ignoreCase = true)
+    }
+
+    var showBottomSheet by remember { mutableStateOf(false) }
+    var selectedSponsor by remember { mutableStateOf<SponsorItem?>(null) }
+    val sheetState = rememberModalBottomSheetState()
+
+    if (showBottomSheet && selectedSponsor != null) {
+        ModalBottomSheet(
+            onDismissRequest = { showBottomSheet = false },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    text = selectedSponsor!!.name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Text(
+                    text = "Which website would you like to visit?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+
+                selectedSponsor!!.links?.forEach { link ->
+                    Button(
+                        onClick = {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link.url))
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Log.e("SponsorsScreen", "Error opening website: ${link.url}", e)
+                            }
+                            showBottomSheet = false
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text(link.label)
+                    }
+                }
+            }
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
@@ -658,7 +720,25 @@ fun SponsorsScreen(sponsors: List<SponsorItem>, onSponsorClick: (String) -> Unit
         LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             items(filteredSponsors) { sponsor ->
                 ElevatedCard(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val links = sponsor.links
+                            if (links != null && links.size > 1) {
+                                selectedSponsor = sponsor
+                                showBottomSheet = true
+                            } else {
+                                val url = links?.firstOrNull()?.url ?: sponsor.website
+                                url?.let {
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(it))
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        Log.e("SponsorsScreen", "Error opening website: $it", e)
+                                    }
+                                }
+                            }
+                        },
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.elevatedCardColors(
                         containerColor = MaterialTheme.colorScheme.surface
@@ -678,6 +758,7 @@ fun SponsorsScreen(sponsors: List<SponsorItem>, onSponsorClick: (String) -> Unit
                             val names = sponsor.name.split("&").map { it.trim() }
                             Box(
                                 modifier = Modifier
+                                    .padding(top = 8.dp) // Move down to center visually
                                     .width(if (names.size > 1) 72.dp else 48.dp)
                                     .height(48.dp),
                                 contentAlignment = Alignment.CenterStart
@@ -692,8 +773,8 @@ fun SponsorsScreen(sponsors: List<SponsorItem>, onSponsorClick: (String) -> Unit
                                             .padding(start = (index * 24).dp)
                                             .size(48.dp),
                                         shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                        border = BorderStroke(2.dp, MaterialTheme.colorScheme.surface)
+                                        color = MaterialTheme.colorScheme.surface,
+                                        border = BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant)
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
                                             if (resourceId != 0) {
@@ -818,22 +899,24 @@ fun VendorsScreen(
                             ) 
                         },
                         leadingContent = {
-                            Surface(
-                                modifier = Modifier.size(48.dp),
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = when(vendor.category) {
-                                            "Food" -> Icons.Default.Fastfood
-                                            "Brewery" -> Icons.Default.LocalBar
-                                            "Spirits" -> Icons.Default.WineBar
-                                            else -> Icons.Default.ShoppingCart
-                                        },
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.secondary
-                                    )
+                            Box(modifier = Modifier.padding(top = 8.dp)) { // Move down to center visually
+                                Surface(
+                                    modifier = Modifier.size(48.dp),
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = when(vendor.category) {
+                                                "Food" -> Icons.Default.Fastfood
+                                                "Brewery" -> Icons.Default.LocalBar
+                                                "Spirits" -> Icons.Default.WineBar
+                                                else -> Icons.Default.ShoppingCart
+                                            },
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.secondary
+                                        )
+                                    }
                                 }
                             }
                         },
@@ -1311,7 +1394,7 @@ data class MapRegion(
 )
 
 fun parseSvg(context: android.content.Context, fileName: String): List<MapRegion> {
-    val regions = mutableListOf<MapRegion>()
+    val regionsMap = mutableMapOf<String, MutableList<Pair<Path, Color>>>()
     val factory = XmlPullParserFactory.newInstance()
     val parser = factory.newPullParser()
     val inputStream = context.assets.open(fileName)
@@ -1334,44 +1417,61 @@ fun parseSvg(context: android.content.Context, fileName: String): List<MapRegion
                     groupIds.add(id ?: "")
                 } else {
                     val fill = parser.getAttributeValue(null, "fill") ?: "#000000"
-                    val color = try { Color(android.graphics.Color.parseColor(fill)) } catch (_: Exception) { Color.Gray }
+                    val fillOpacity = parser.getAttributeValue(null, "fill-opacity")?.toFloatOrNull() ?: 1f
+                    
+                    val color = if (fill == "none") {
+                        Color.Transparent
+                    } else {
+                        try {
+                            val baseColor = android.graphics.Color.parseColor(fill)
+                            Color(baseColor).copy(alpha = fillOpacity)
+                        } catch (_: Exception) {
+                            Color.Gray.copy(alpha = fillOpacity)
+                        }
+                    }
+
                     val finalId = id ?: groupIds.lastOrNull { it.isNotEmpty() }
-                    val isClickable = finalId != null && !backgroundIds.contains(finalId)
 
                     // Skip drawing the very base white rectangle if it's "Event Map Base"
                     val shouldSkip = finalId == "Event Map Base" && tagName == "rect"
 
-                    if (!shouldSkip) {
+                    if (!shouldSkip && finalId != null) {
+                        val androidPath = android.graphics.Path()
+                        var pathFound = false
+
                         when (tagName) {
                             "path" -> {
                                 val d = parser.getAttributeValue(null, "d")
                                 if (d != null) {
                                     try {
-                                        val androidPath = PathParser().parsePathString(d).toPath().asAndroidPath()
-                                        applySvgTransform(androidPath, transform)
-                                        regions.add(MapRegion(finalId ?: "path_${regions.size}", androidPath.asComposePath(), color, isClickable))
+                                        val p = PathParser().parsePathString(d).toPath().asAndroidPath()
+                                        androidPath.set(p)
+                                        pathFound = true
                                     } catch (_: Exception) { Log.e("MapParser", "Error parsing path") }
                                 }
                             }
-                            "rect", "ellipse" -> {
-                                val androidPath = android.graphics.Path()
-                                if (tagName == "rect") {
-                                    val x = parser.getAttributeValue(null, "x")?.toFloat() ?: 0f
-                                    val y = parser.getAttributeValue(null, "y")?.toFloat() ?: 0f
-                                    val width = parser.getAttributeValue(null, "width")?.toFloat() ?: 0f
-                                    val height = parser.getAttributeValue(null, "height")?.toFloat() ?: 0f
-                                    androidPath.addRect(x, y, x + width, y + height, android.graphics.Path.Direction.CW)
-                                } else {
-                                    val cx = parser.getAttributeValue(null, "cx")?.toFloat() ?: 0f
-                                    val cy = parser.getAttributeValue(null, "cy")?.toFloat() ?: 0f
-                                    val rx = parser.getAttributeValue(null, "rx")?.toFloat() ?: 0f
-                                    val ry = parser.getAttributeValue(null, "ry")?.toFloat() ?: 0f
-                                    androidPath.addOval(cx - rx, cy - ry, cx + rx, cy + ry, android.graphics.Path.Direction.CW)
-                                }
-
-                                applySvgTransform(androidPath, transform)
-                                regions.add(MapRegion(finalId ?: "${tagName}_${regions.size}", androidPath.asComposePath(), color, isClickable))
+                            "rect" -> {
+                                val x = parser.getAttributeValue(null, "x")?.toFloat() ?: 0f
+                                val y = parser.getAttributeValue(null, "y")?.toFloat() ?: 0f
+                                val width = parser.getAttributeValue(null, "width")?.toFloat() ?: 0f
+                                val height = parser.getAttributeValue(null, "height")?.toFloat() ?: 0f
+                                androidPath.addRect(x, y, x + width, y + height, android.graphics.Path.Direction.CW)
+                                pathFound = true
                             }
+                            "ellipse", "circle" -> {
+                                val cx = parser.getAttributeValue(null, "cx")?.toFloat() ?: 0f
+                                val cy = parser.getAttributeValue(null, "cy")?.toFloat() ?: 0f
+                                val rx = if (tagName == "circle") parser.getAttributeValue(null, "r")?.toFloat() ?: 0f else parser.getAttributeValue(null, "rx")?.toFloat() ?: 0f
+                                val ry = if (tagName == "circle") rx else parser.getAttributeValue(null, "ry")?.toFloat() ?: 0f
+                                androidPath.addOval(cx - rx, cy - ry, cx + rx, cy + ry, android.graphics.Path.Direction.CW)
+                                pathFound = true
+                            }
+                        }
+
+                        if (pathFound) {
+                            applySvgTransform(androidPath, transform)
+                            val list = regionsMap.getOrPut(finalId) { mutableListOf() }
+                            list.add(androidPath.asComposePath() to color)
                         }
                     }
                 }
@@ -1385,7 +1485,16 @@ fun parseSvg(context: android.content.Context, fileName: String): List<MapRegion
         eventType = parser.next()
     }
     inputStream.close()
-    return regions
+
+    return regionsMap.map { (id, paths) ->
+        val combinedPath = Path()
+        paths.forEach { (path, _) -> combinedPath.addPath(path) }
+        
+        // Find the "best" color (non-transparent if possible)
+        val regionColor = paths.find { it.second != Color.Transparent }?.second ?: Color.Transparent
+        
+        MapRegion(id, combinedPath, regionColor, !backgroundIds.contains(id))
+    }
 }
 
 private fun applySvgTransform(path: android.graphics.Path, transform: String?) {
@@ -1424,12 +1533,14 @@ fun hitTest(path: Path, x: Float, y: Float): Boolean {
     val bounds = android.graphics.RectF()
     androidPath.computeBounds(bounds, true)
     
+    // Add a small tolerance for clicking thin lines/strokes
+    val tolerance = 5f
     val region = android.graphics.Region()
     region.setPath(androidPath, android.graphics.Region(
-        bounds.left.toInt(),
-        bounds.top.toInt(),
-        bounds.right.toInt(),
-        bounds.bottom.toInt()
+        (bounds.left - tolerance).toInt(),
+        (bounds.top - tolerance).toInt(),
+        (bounds.right + tolerance).toInt(),
+        (bounds.bottom + tolerance).toInt()
     ))
     
     return region.contains(x.toInt(), y.toInt())
