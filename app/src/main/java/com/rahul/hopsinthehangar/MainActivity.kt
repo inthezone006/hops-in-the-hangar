@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -262,7 +263,7 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
                     }
                 ) 
             }
-            composable(Screen.Map.route) { MapScreen() }
+            composable(Screen.Map.route) { MapScreen(eventData, favoriteIds) }
             composable(Screen.Detail.route) { backStackEntry ->
                 val type = backStackEntry.arguments?.getString("type") ?: ""
                 val id = backStackEntry.arguments?.getString("id") ?: ""
@@ -361,7 +362,8 @@ data class VendorItem(
     val description: String,
     val email: String? = null,
     val phone: String? = null,
-    val website: String? = null
+    val website: String? = null,
+    val mapId: String? = null
 )
 
 @Serializable
@@ -389,6 +391,8 @@ suspend fun loadEventData(context: Context): EventData? = withContext(Dispatcher
 
 @Composable
 fun HomeScreen(eventData: EventData?) {
+    var expanded by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -417,23 +421,6 @@ fun HomeScreen(eventData: EventData?) {
             }
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Surface(
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text(
-                "HOPS IN THE HANGAR",
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                style = MaterialTheme.typography.labelLarge.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 2.sp
-                )
-            )
-        }
-        
         Spacer(modifier = Modifier.height(48.dp))
         
         ElevatedCard(
@@ -454,12 +441,23 @@ fun HomeScreen(eventData: EventData?) {
                     fontWeight = FontWeight.ExtraBold
                 )
                 Spacer(modifier = Modifier.height(16.dp))
+                
+                val fullText = "Welcome to Hops in the Hangar, your Craft Beer & Airshow event app! Explore a lineup of vendors and sponsors, discover detailed venue information, find the best hotels nearby, enjoy exciting entertainment, and get to know the featured airshow performers.\n\nCraft beer, beverages, and aircraft come together to create not only a fun social event, but also an extremely unique community experience. Hops in the Hangar celebrates aviation, local businesses, and great craft beverages while bringing people together for an unforgettable evening at the Middletown Regional Airport.\n\nWhether you're here for the thrilling air show performances, the incredible selection of breweries and beverage vendors, or simply to enjoy time with friends and family, this app will help you make the most of your experience. Stay connected with schedules, updates, event maps, and everything you need for an amazing experience at Hops in the Hangar 2026."
+                val firstParagraph = fullText.substringBefore("\n\n")
+                
                 Text(
-                    "Welcome to Hops in the Hangar, your ultimate Craft Beer & Airshow event app! Explore a lineup of vendors and sponsors, discover detailed venue information, find the best hotels nearby, enjoy exciting entertainment, and get to know the featured airshow performers.\n\nCraft beer, beverages, and aircraft come together to create not only a fun social event, but also an extremely unique community experience. Hops in the Hangar celebrates aviation, local businesses, and great craft beverages while bringing people together for an unforgettable evening at the Middletown Regional Airport.\n\nWhether you're here for the thrilling air show performances, the incredible selection of breweries and beverage vendors, or simply to enjoy time with friends and family, this app will help you make the most of your experience. Stay connected with schedules, updates, event maps, and everything you need for an amazing experience at Hops in the Hangar 2026.",
+                    if (expanded) fullText else firstParagraph,
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Start,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                 )
+                
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(
+                        if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (expanded) "Show Less" else "Show More"
+                    )
+                }
             }
         }
         
@@ -494,64 +492,35 @@ fun HomeScreen(eventData: EventData?) {
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Text("Nearby Hotels", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
                     val context = LocalContext.current
                     eventData.info.hotels.forEach { hotel ->
-                        TextButton(
+                        ElevatedCard(
                             onClick = { 
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(hotel.link))
                                 context.startActivity(intent)
                             },
-                            contentPadding = PaddingValues(0.dp)
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.elevatedCardColors(
+                                containerColor = Color.Transparent
+                            ),
+                            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
                         ) {
-                            Text(hotel.name, style = MaterialTheme.typography.bodyMedium)
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Hotel, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(hotel.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.weight(1f))
+                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp))
+                            }
                         }
                     }
                 }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Text(
-            "LATEST ANNOUNCEMENTS",
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.sp
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-
-        ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                ListItem(
-                    headlineContent = { Text("Wild Bill", fontWeight = FontWeight.Bold) },
-                    supportingContent = { Text("Steven Hanshew") },
-                    overlineContent = { Text("ANNOUNCER", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall) },
-                    leadingContent = { 
-                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), modifier = Modifier.size(40.dp)) {
-                            Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Mic, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) }
-                        }
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                )
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                ListItem(
-                    headlineContent = { Text("Smoke on Aviation", fontWeight = FontWeight.Bold) },
-                    supportingContent = { Text("Out of Louisville, KY") },
-                    overlineContent = { Text("PERFORMANCE", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelSmall) },
-                    leadingContent = { 
-                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f), modifier = Modifier.size(40.dp)) {
-                            Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.AirplanemodeActive, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp)) }
-                        }
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                )
             }
         }
         
@@ -621,6 +590,24 @@ fun HomeScreen(eventData: EventData?) {
             }
         }
         
+        Spacer(modifier = Modifier.height(32.dp))
+
+        val context = LocalContext.current
+        val versionName = remember {
+            try {
+                context.packageManager.getPackageInfo(context.packageName, 0).versionName
+            } catch (e: Exception) {
+                "Unknown"
+            }
+        }
+        
+        Text(
+            text = "v$versionName",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        
         Spacer(modifier = Modifier.height(64.dp))
     }
 }
@@ -673,7 +660,6 @@ fun SponsorsScreen(sponsors: List<SponsorItem>, onSponsorClick: (String) -> Unit
                 ElevatedCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
-                    onClick = { onSponsorClick(sponsor.name) },
                     colors = CardDefaults.elevatedCardColors(
                         containerColor = MaterialTheme.colorScheme.surface
                     )
@@ -689,24 +675,50 @@ fun SponsorsScreen(sponsors: List<SponsorItem>, onSponsorClick: (String) -> Unit
                             ) 
                         },
                         leadingContent = {
-                            Surface(
-                                modifier = Modifier.size(48.dp),
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            val names = sponsor.name.split("&").map { it.trim() }
+                            Box(
+                                modifier = Modifier
+                                    .width(if (names.size > 1) 72.dp else 48.dp)
+                                    .height(48.dp),
+                                contentAlignment = Alignment.CenterStart
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Default.Star,
-                                        contentDescription = null,
-                                        tint = when(sponsor.level) {
-                                            "Top Flight" -> MaterialTheme.colorScheme.primary
-                                            "First Class" -> Color(0xFFFFD700) // Gold
-                                            "Business Class" -> Color(0xFFC0C0C0) // Silver
-                                            "Coach Class" -> Color(0xFFCD7F32) // Bronze
-                                            "Brewery" -> MaterialTheme.colorScheme.secondary
-                                            else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+                                names.forEachIndexed { index, name ->
+                                    val resourceName = name.lowercase().replace(" ", "_").replace(",", "")
+                                    val context = LocalContext.current
+                                    val resourceId = context.resources.getIdentifier(resourceName, "drawable", context.packageName)
+                                    
+                                    Surface(
+                                        modifier = Modifier
+                                            .padding(start = (index * 24).dp)
+                                            .size(48.dp),
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                        border = BorderStroke(2.dp, MaterialTheme.colorScheme.surface)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            if (resourceId != 0) {
+                                                AsyncImage(
+                                                    model = resourceId,
+                                                    contentDescription = name,
+                                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                            } else {
+                                                Icon(
+                                                    Icons.Default.Star,
+                                                    contentDescription = null,
+                                                    tint = when(sponsor.level) {
+                                                        "Top Flight" -> MaterialTheme.colorScheme.primary
+                                                        "First Class" -> Color(0xFFFFD700) // Gold
+                                                        "Business Class" -> Color(0xFFC0C0C0) // Silver
+                                                        "Coach Class" -> Color(0xFFCD7F32) // Bronze
+                                                        "Brewery" -> MaterialTheme.colorScheme.secondary
+                                                        else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+                                                    }
+                                                )
+                                            }
                                         }
-                                    )
+                                    }
                                 }
                             }
                         },
@@ -728,26 +740,61 @@ fun VendorsScreen(
     onToggleFavorite: (String) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var selectedCategories by remember { mutableStateOf(setOf("Brewery", "Food Truck")) }
+    
     val filteredVendors = vendors.filter {
-        it.name.contains(searchQuery, ignoreCase = true) || it.category.contains(searchQuery, ignoreCase = true)
+        (it.name.contains(searchQuery, ignoreCase = true) || it.category.contains(searchQuery, ignoreCase = true)) &&
+        selectedCategories.contains(it.category)
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
-            placeholder = { Text("Search Breweries...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-            singleLine = true,
-            shape = RoundedCornerShape(16.dp),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                unfocusedIndicatorColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Search Vendors...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
+                )
             )
-        )
+            
+            var showFilterMenu by remember { mutableStateOf(false) }
+            Box {
+                IconButton(onClick = { showFilterMenu = true }) {
+                    Icon(Icons.Default.FilterList, contentDescription = "Filter")
+                }
+                DropdownMenu(expanded = showFilterMenu, onDismissRequest = { showFilterMenu = false }) {
+                    listOf("Brewery", "Food Truck").forEach { category ->
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Checkbox(
+                                        checked = selectedCategories.contains(category),
+                                        onCheckedChange = null
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(category)
+                                }
+                            },
+                            onClick = {
+                                selectedCategories = if (selectedCategories.contains(category)) {
+                                    selectedCategories - category
+                                } else {
+                                    selectedCategories + category
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             items(filteredVendors) { vendor ->
@@ -970,7 +1017,59 @@ fun EntertainmentScreen(schedule: List<ScheduleItem>) {
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         Text(
-            text = "Featured Performers",
+            text = "Ground Entertainment",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.sp
+        )
+
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(8.dp)) {
+                ListItem(
+                    headlineContent = { Text("Jane Doe", fontWeight = FontWeight.Bold) },
+                    supportingContent = { Text("Entertainment Host") },
+                    overlineContent = { Text("HOST", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall) },
+                    leadingContent = { 
+                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), modifier = Modifier.size(40.dp)) {
+                            Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Mic, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) }
+                        }
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                )
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                ListItem(
+                    headlineContent = { Text("DJ Mixmaster", fontWeight = FontWeight.Bold) },
+                    supportingContent = { Text("Live Music DJ") },
+                    overlineContent = { Text("MUSIC", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelSmall) },
+                    leadingContent = { 
+                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f), modifier = Modifier.size(40.dp)) {
+                            Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.MusicNote, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp)) }
+                        }
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                )
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                ListItem(
+                    headlineContent = { Text("John Smith", fontWeight = FontWeight.Bold) },
+                    supportingContent = { Text("National Anthem Singer") },
+                    overlineContent = { Text("ANTHEM", color = Color.Red, style = MaterialTheme.typography.labelSmall) },
+                    leadingContent = { 
+                        Surface(shape = CircleShape, color = Color.Red.copy(alpha = 0.1f), modifier = Modifier.size(40.dp)) {
+                            Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.RecordVoiceOver, contentDescription = null, tint = Color.Red, modifier = Modifier.size(20.dp)) }
+                        }
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                )
+            }
+        }
+
+        Text(
+            text = "In Flight Performers",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.ExtraBold,
@@ -996,8 +1095,8 @@ fun EntertainmentScreen(schedule: List<ScheduleItem>) {
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                 ListItem(
-                    headlineContent = { Text("Smoke on Aviation", fontWeight = FontWeight.Bold) },
-                    supportingContent = { Text("Out of Louisville, KY") },
+                    headlineContent = { Text("Team Fastrax", fontWeight = FontWeight.Bold) },
+                    supportingContent = { Text("Opening Jump") },
                     overlineContent = { Text("PERFORMANCE", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelSmall) },
                     leadingContent = { 
                         Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f), modifier = Modifier.size(40.dp)) {
@@ -1043,7 +1142,7 @@ fun EntertainmentScreen(schedule: List<ScheduleItem>) {
 }
 
 @Composable
-fun MapScreen() {
+fun MapScreen(eventData: EventData?, favoriteIds: Set<String>) {
     val context = LocalContext.current
     var regions by remember { mutableStateOf<List<MapRegion>>(emptyList()) }
     var selectedRegionId by remember { mutableStateOf<String?>(null) }
@@ -1057,6 +1156,10 @@ fun MapScreen() {
     // Constants for SVG viewport
     val svgWidth = 2000f
     val svgHeight = 2000f
+
+    val heartedMapIds = remember(eventData, favoriteIds) {
+        eventData?.vendors?.filter { favoriteIds.contains(it.name) }?.mapNotNull { it.mapId }?.toSet() ?: emptySet()
+    }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -1089,6 +1192,7 @@ fun MapScreen() {
                 val baseOffsetY = (canvasHeight - (svgHeight * baseScale)) / 2f
                 
                 val primaryColor = MaterialTheme.colorScheme.primary
+                val favoriteColor = Color(0xFFFF4081) // Pink/Red for favorites
 
                 Canvas(
                     modifier = Modifier
@@ -1130,13 +1234,19 @@ fun MapScreen() {
                         
                         regions.forEach { region ->
                             val isSelected = region.id == selectedRegionId
+                            val isHearted = heartedMapIds.contains(region.id)
+                            
                             drawPath(
                                 path = region.path,
-                                color = if (isSelected) primaryColor else region.color,
+                                color = when {
+                                    isSelected -> primaryColor
+                                    isHearted -> favoriteColor
+                                    else -> region.color
+                                },
                                 style = Fill
                             )
-                            // Draw outline for selected
-                            if (isSelected) {
+                            // Draw outline for selected or hearted
+                            if (isSelected || isHearted) {
                                 drawPath(
                                     path = region.path,
                                     color = Color.Black,
