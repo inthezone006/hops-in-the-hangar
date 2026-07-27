@@ -37,6 +37,7 @@
   ],
   "schedule": [
     { "time": "4:00 PM", "event": "VIP Early Access" },
+    { "time": "4:00 PM - 6:00 PM", "event": "Entrance Gate Live Performance" },
     { "time": "5:00 PM", "event": "General Admission Starts" },
     { "time": "6:00 PM", "event": "Opening Jump" },
     { "time": "9:30 PM", "event": "Event End" }
