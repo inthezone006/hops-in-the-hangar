@@ -23,7 +23,7 @@
     { "name": "Dafuque Beer Company", "category": "Brewery", "description": "Local Favorite", "email": "info@dafuquebeer.com", "phone": "614-204-5147", "website": "https://dafuquebeer.com" },
     { "name": "Streetside Brewery", "category": "Brewery", "description": "Cincinnati, OH", "email": "info@streetsidebrewery.com", "phone": "513-615-5877", "website": "https://streetsidebrewery.com" },
     { "name": "Loose Ends Brewing", "category": "Brewery", "description": "Centerville, OH", "email": "info@looseendsbrewing.com", "phone": "937-723-6328", "website": "https://www.looseendsbrewing.com" },
-    { "name": "Third eye brewing", "category": "Brewery", "description": "Sharonville, OH", "email": "info@thirdeyebrewingco.com", "phone": "513-771-2739", "website": "https://thirdeyebrewingco.com" },
+    { "name": "Third Eye Brewing", "category": "Brewery", "description": "Sharonville, OH", "email": "info@thirdeyebrewingco.com", "phone": "513-771-2739", "website": "https://thirdeyebrewingco.com" },
     { "name": "Gravel Road Brewing Co", "category": "Brewery", "description": "Middletown, OH", "email": "contact@gravelroadbrewing.com", "phone": "513-594-8251", "website": "http://gravelroadbrewing.com" },
     { "name": "Depot Brewing Company", "category": "Brewery", "description": "Fairborn, OH", "email": "contact@depotbrewing.com", "phone": "513-796-3661", "website": "https://www.depotbrewing.com" },
     { "name": "Sonder Brewing", "category": "Brewery", "description": "Mason, OH", "email": "contactus@sonderbrewing.com", "phone": "513-779-2739", "website": "https://sonderbrewing.com" },
