@@ -62,8 +62,8 @@
     "parking": "Free parking is available at the Middletown Regional Airport. Follow signs for 'Event Parking'. Shuttles will be available from designated lots.",
     "rules": "No outside food or beverage. Clear bags only. No smoking in the hangars. All attendees must be 21+ with a valid ID to consume alcohol.",
     "hotels": [
-      { "name": "Drury Inn & Suites Middletown Franklin", "link": "https://www.druryhotels.com" },
-      { "name": "Hampton Inn Middletown", "link": "https://www.hilton.com/en/hotels/mwtohhx-hampton-middletown/" }
+      { "name": "Drury Inn & Suites", "link": "https://www.druryhotels.com" },
+      { "name": "Hampton Inn", "link": "https://www.hilton.com/en/hotels/mwtohhx-hampton-middletown/" }
     ]
   }
 }

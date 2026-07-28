@@ -764,7 +764,7 @@ fun SponsorsScreen(sponsors: List<SponsorItem>, onSponsorClick: (String) -> Unit
                                 contentAlignment = Alignment.CenterStart
                             ) {
                                 names.forEachIndexed { index, name ->
-                                    val resourceName = name.lowercase().replace(" ", "_").replace(",", "")
+                                    val resourceName = name.lowercase().replace(" ", "_").replace(Regex("[^a-z0-9_]"), "")
                                     val context = LocalContext.current
                                     val resourceId = context.resources.getIdentifier(resourceName, "drawable", context.packageName)
                                     
@@ -899,23 +899,37 @@ fun VendorsScreen(
                             ) 
                         },
                         leadingContent = {
+                            val context = LocalContext.current
+                            val resourceName = vendor.name.lowercase().replace(" ", "_").replace(Regex("[^a-z0-9_]"), "")
+                            val resourceId = context.resources.getIdentifier(resourceName, "drawable", context.packageName)
+
                             Box(modifier = Modifier.padding(top = 8.dp)) { // Move down to center visually
                                 Surface(
                                     modifier = Modifier.size(48.dp),
                                     shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                                    color = MaterialTheme.colorScheme.surface,
+                                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = when(vendor.category) {
-                                                "Food" -> Icons.Default.Fastfood
-                                                "Brewery" -> Icons.Default.LocalBar
-                                                "Spirits" -> Icons.Default.WineBar
-                                                else -> Icons.Default.ShoppingCart
-                                            },
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.secondary
-                                        )
+                                        if (resourceId != 0) {
+                                            AsyncImage(
+                                                model = resourceId,
+                                                contentDescription = vendor.name,
+                                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = when(vendor.category) {
+                                                    "Food", "Food Truck" -> Icons.Default.Fastfood
+                                                    "Brewery" -> Icons.Default.LocalBar
+                                                    "Spirits" -> Icons.Default.WineBar
+                                                    else -> Icons.Default.ShoppingCart
+                                                },
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.secondary
+                                            )
+                                        }
                                     }
                                 }
                             }
