@@ -1548,7 +1548,7 @@ fun hitTest(path: Path, x: Float, y: Float): Boolean {
     val bounds = android.graphics.RectF()
     androidPath.computeBounds(bounds, true)
     
-    // Add a small tolerance for clicking thin lines/strokes
+    // 1. Check if it hits the actual filled region (with small tolerance for strokes)
     val tolerance = 5f
     val region = android.graphics.Region()
     region.setPath(androidPath, android.graphics.Region(
@@ -1558,7 +1558,11 @@ fun hitTest(path: Path, x: Float, y: Float): Boolean {
         (bounds.bottom + tolerance).toInt()
     ))
     
-    return region.contains(x.toInt(), y.toInt())
+    if (region.contains(x.toInt(), y.toInt())) return true
+
+    // 2. Fallback: Check if it's within the bounding box
+    // This handles clicking in the "empty space" inside icons or disconnected paths
+    return bounds.contains(x, y)
 }
 
 @Preview(showBackground = true)
