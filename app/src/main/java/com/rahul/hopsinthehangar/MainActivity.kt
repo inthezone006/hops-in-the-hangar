@@ -1424,7 +1424,8 @@ fun parseSvg(context: android.content.Context, fileName: String): List<MapRegion
         val tagName = parser.name
         when (eventType) {
             XmlPullParser.START_TAG -> {
-                val id = parser.getAttributeValue(null, "id")
+                val rawId = parser.getAttributeValue(null, "id")
+                val id = rawId?.replace(Regex("_\\d+$"), "")
                 val transform = parser.getAttributeValue(null, "transform")
                 
                 if (tagName == "g") {
