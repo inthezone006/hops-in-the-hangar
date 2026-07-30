@@ -9,6 +9,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import kotlin.OptIn
@@ -44,6 +47,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -141,6 +147,24 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // FAB Visibility state
+    var isFabVisible by remember { mutableStateOf(true) }
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                // available.y < 0 means scrolling down
+                // -40f threshold for "fast" scroll down
+                if (available.y < -40f) {
+                    isFabVisible = false
+                } else if (available.y > 10f) {
+                    // Any significant scroll up shows it back
+                    isFabVisible = true
+                }
+                return Offset.Zero
+            }
+        }
+    }
+
     // Data Management
     val repository = remember { FavoritesRepository(context.dataStore) }
     val favoriteIds by repository.favoriteIds.collectAsState(initial = emptySet())
@@ -152,6 +176,9 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
 
     // Log screen views
     LaunchedEffect(currentRoute) {
+        // Reset FAB visibility when switching screens
+        isFabVisible = true
+        
         currentRoute?.let { route ->
             analytics?.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW) {
                 param(FirebaseAnalytics.Param.SCREEN_NAME, route)
@@ -172,7 +199,9 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
     )
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -226,6 +255,29 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
                             unselectedTextColor = MaterialTheme.colorScheme.secondary
                         )
                     )
+                }
+            }
+        },
+        floatingActionButton = {
+            if (currentRoute != Screen.Map.route) {
+                AnimatedVisibility(
+                    visible = isFabVisible,
+                    enter = slideInVertically(initialOffsetY = { it }),
+                    exit = slideOutVertically(targetOffsetY = { it })
+                ) {
+                    FloatingActionButton(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://middletownaviationfoundation.ticketspice.com/hops-in-the-hangar-2026"))
+                            context.startActivity(intent)
+                        },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ConfirmationNumber,
+                            contentDescription = "Get Tickets"
+                        )
+                    }
                 }
             }
         }
