@@ -46,10 +46,7 @@
     { "name": "Stevens Point Brewery", "category": "Brewery", "description": "Stevens Point, WI", "email": "info@pointbeer.com", "phone": "715-344-9310", "website": "https://www.pointbeer.com", "mapId": "Beer Booth 9" },
     { "name": "Heavier Than Air Brewing Co", "category": "Brewery", "description": "Centerville, OH", "email": "info@heavierthanairbrewing.com", "phone": "937-433-1500", "website": "https://heavierthanairbrewing.com", "mapId": "Beer Booth 10" },
     { "name": "NEW Ales Brewing", "category": "Brewery", "description": "Middletown, OH", "email": "middletownbeerandsandwiches@gmail.com", "phone": "513-915-7023", "website": "https://www.newalesbrewing.com", "mapId": "Beer Booth 11" },
-    { "name": "BC's Brewing Company", "category": "Brewery", "description": "Mason, OH", "email": "info@bcsbrewing.com", "phone": "513-847-6866", "website": "https://www.bcsbrewing.com", "mapId": "Beer Booth 12" },
-    { "name": "Nacho Average Dog", "category": "Food Truck", "description": "Gourmet Hot Dogs", "mapId": "Food Truck 1" },
-    { "name": "Tacos El Caporal", "category": "Food Truck", "description": "Authentic Tacos", "mapId": "Food Truck 2" },
-    { "name": "Quite Franklee", "category": "Food Truck", "description": "Craft Sandwiches", "mapId": "Food Truck 3" }
+    { "name": "BC's Brewing Company", "category": "Brewery", "description": "Mason, OH", "email": "info@bcsbrewing.com", "phone": "513-847-6866", "website": "https://www.bcsbrewing.com", "mapId": "Beer Booth 12" }
   ],
   "schedule": [
     { "time": "4:00 PM", "event": "VIP Early Access" },
