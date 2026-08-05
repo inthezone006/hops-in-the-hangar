@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.SystemBarStyle
@@ -53,6 +54,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -96,10 +99,9 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "fa
 class FavoritesRepository(private val dataStore: DataStore<Preferences>) {
     private val favoritesKey = stringSetPreferencesKey("favorite_ids")
 
-    val favoriteIds: Flow<Set<String>> = dataStore.data
-        .map { preferences ->
-            preferences[favoritesKey] ?: emptySet()
-        }
+    val favoriteIds: Flow<Set<String>> = dataStore.data.map { preferences ->
+        preferences[favoritesKey] ?: emptySet()
+    }
 
     suspend fun toggleFavorite(id: String) {
         dataStore.edit { preferences ->
@@ -117,11 +119,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(
-                android.graphics.Color.TRANSPARENT
-            )
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
         )
+        
         setContent {
             HopsInTheHangarTheme {
                 MainScreen()
@@ -135,7 +138,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object Sponsors : Screen("sponsors", "Sponsors", Icons.Default.Star)
     object Entertainment : Screen("entertainment", "Events", Icons.AutoMirrored.Filled.List)
     object Vendors : Screen("vendors", "Vendors", Icons.Default.ShoppingCart)
-    object Map : Screen("map", "Map", Icons.Default.LocationOn)
+    object Map : Screen("map", "Map", Icons.Default.Map)
     object Detail : Screen("detail/{type}/{id}", "Detail", Icons.Default.Info)
 }
 
@@ -193,9 +196,9 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
     val bottomNavItems = listOf(
         Screen.Home,
         Screen.Sponsors,
+        Screen.Map,
         Screen.Entertainment,
-        Screen.Vendors,
-        Screen.Map
+        Screen.Vendors
     )
 
     Scaffold(
@@ -205,10 +208,15 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
+            val title = when {
+                currentRoute == Screen.Map.route -> "EVENT MAP"
+                else -> bottomNavItems.find { it.route == currentRoute }?.label?.uppercase() ?: "HOPS IN THE HANGAR"
+            }
+            
             CenterAlignedTopAppBar(
                 title = { 
                     Text(
-                        text = bottomNavItems.find { it.route == currentRoute }?.label?.uppercase() ?: "HOPS IN THE HANGAR",
+                        text = title,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 2.sp
@@ -781,12 +789,18 @@ fun SponsorsScreen(sponsors: List<SponsorItem>, onSponsorClick: (String) -> Unit
                                 showBottomSheet = true
                             } else {
                                 val url = links?.firstOrNull()?.url ?: sponsor.website
-                                url?.let {
+                                
+                                val noWebsiteSponsors = setOf("lewis horticultural", "askren balloon team", "kara goheen friends")
+                                val isNoWebsite = noWebsiteSponsors.any { sponsor.name.lowercase().contains(it) }
+
+                                if (isNoWebsite || url.isNullOrBlank()) {
+                                    Toast.makeText(context, "A website does not exist for this sponsor.", Toast.LENGTH_SHORT).show()
+                                } else {
                                     try {
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(it))
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                         context.startActivity(intent)
                                     } catch (e: Exception) {
-                                        Log.e("SponsorsScreen", "Error opening website: $it", e)
+                                        Log.e("SponsorsScreen", "Error opening website: $url", e)
                                     }
                                 }
                             }
@@ -1082,6 +1096,9 @@ fun DetailScreen(type: String, id: String, item: Any?) {
         }
         
         if (email != null || phone != null || website != null) {
+            val noWebsiteNames = setOf("lewis horticultural", "askren balloon team", "kara goheen friends")
+            val isNoWebsite = noWebsiteNames.any { id.lowercase().contains(it) }
+
             ElevatedCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
@@ -1127,8 +1144,12 @@ fun DetailScreen(type: String, id: String, item: Any?) {
                             icon = Icons.Default.Language, 
                             value = it,
                             onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(it))
-                                context.startActivity(intent)
+                                if (isNoWebsite) {
+                                    Toast.makeText(context, "A website does not exist.", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(it))
+                                    context.startActivity(intent)
+                                }
                             }
                         )
                     }
@@ -1290,6 +1311,7 @@ fun EntertainmentScreen(schedule: List<ScheduleItem>) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(eventData: EventData?, favoriteIds: Set<String>) {
     val context = LocalContext.current
@@ -1299,7 +1321,7 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>) {
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Transformation state
-    var zoomScale by remember { mutableFloatStateOf(1f) }
+    var zoomScale by remember { mutableFloatStateOf(2f) }
     var panOffset by remember { mutableStateOf(Offset.Zero) }
 
     // Constants for SVG viewport
@@ -1317,7 +1339,7 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>) {
                 regions = parsedRegions
                 isLoading = false
             } catch (e: Exception) {
-                Log.e("MapScreen", "Error parsing SVG", e)
+                Log.e("MapScreen", "Error loading event data", e)
                 isLoading = false
             }
         }
@@ -1327,45 +1349,49 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>) {
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else {
-            BoxWithConstraints(modifier = Modifier.fillMaxSize().clipToBounds()) {
+            // Map Content Area
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clipToBounds()
+            ) {
                 val canvasWidth = constraints.maxWidth.toFloat()
                 val canvasHeight = constraints.maxHeight.toFloat()
                 
-                // Base scale to fit SVG to screen
+                // baseScaleX fits width, baseScaleY fits height
                 val baseScaleX = canvasWidth / svgWidth
                 val baseScaleY = canvasHeight / svgHeight
-                val baseScale = minOf(baseScaleX, baseScaleY)
                 
-                // Centering offsets
-                val baseOffsetX = (canvasWidth - (svgWidth * baseScale)) / 2f
-                val baseOffsetY = (canvasHeight - (svgHeight * baseScale)) / 2f
+                // Use maxOf to "fill" the available area
+                val baseScale = maxOf(baseScaleX, baseScaleY)
                 
                 val primaryColor = MaterialTheme.colorScheme.primary
-                val favoriteColor = Color(0xFFFF4081) // Pink/Red for favorites
+                val favoriteColor = Color(0xFFFF4081)
 
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
-                        .clipToBounds() // Ensure map doesn't draw outside the canvas area
+                        .clipToBounds()
                         .pointerInput(regions) {
                             detectTransformGestures { centroid, pan, zoom, _ ->
                                 val oldScale = zoomScale
                                 val newScale = (oldScale * zoom).coerceIn(1f, 10f)
                                 val scaleFactor = newScale / oldScale
                                 
-                                // Centric zoom: panOffset' = pan + panOffset * scaleFactor + (centroid - baseOffset) * (1 - scaleFactor)
-                                val baseOffset = Offset(baseOffsetX, baseOffsetY)
-                                panOffset = (panOffset * scaleFactor) + (centroid - baseOffset) * (1f - scaleFactor) + pan
+                                // New gesture logic: panOffset is center-relative
+                                panOffset = (panOffset * scaleFactor) + 
+                                           (centroid - Offset(canvasWidth/2f, canvasHeight/2f)) * (1f - scaleFactor) + 
+                                           pan
                                 zoomScale = newScale
                             }
                         }
                         .pointerInput(regions, zoomScale, panOffset) {
                             detectTapGestures { offset ->
-                                // Calculate coordinate in SVG space
-                                val svgX = (offset.x - baseOffsetX - panOffset.x) / (baseScale * zoomScale)
-                                val svgY = (offset.y - baseOffsetY - panOffset.y) / (baseScale * zoomScale)
+                                // New hit test logic: panOffset is center-relative
+                                val sTotal = baseScale * zoomScale
+                                val svgX = (offset.x - canvasWidth/2f - panOffset.x) / sTotal + svgWidth/2f
+                                val svgY = (offset.y - canvasHeight/2f - panOffset.y) / sTotal + svgHeight/2f
                                 
-                                // Hit test clickable regions only
                                 val clickedRegion = regions.findLast { region ->
                                     region.isClickable && hitTest(region.path, svgX, svgY)
                                 }
@@ -1377,9 +1403,13 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>) {
                     drawIntoCanvas { canvas ->
                         canvas.save()
                         
-                        // Apply transformations
-                        canvas.translate(baseOffsetX + panOffset.x, baseOffsetY + panOffset.y)
-                        canvas.scale(baseScale * zoomScale, baseScale * zoomScale)
+                        // Center-relative translation
+                        val sTotal = baseScale * zoomScale
+                        val tx = canvasWidth/2f - (svgWidth/2f) * sTotal + panOffset.x
+                        val ty = canvasHeight/2f - (svgHeight/2f) * sTotal + panOffset.y
+                        
+                        canvas.translate(tx, ty)
+                        canvas.scale(sTotal, sTotal)
                         
                         regions.forEach { region ->
                             val isSelected = region.id == selectedRegionId
@@ -1394,7 +1424,6 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>) {
                                 },
                                 style = Fill
                             )
-                            // Draw outline for selected or hearted
                             if (isSelected || isHearted) {
                                 drawPath(
                                     path = region.path,
@@ -1406,49 +1435,32 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>) {
                         canvas.restore()
                     }
                 }
-                
-                // Overlay Info Header
-                Surface(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter),
-                    shadowElevation = 8.dp
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+
+                // Floating Reset Button Overlay
+                if (zoomScale != 2f || panOffset != Offset.Zero) {
+                    FilledTonalIconButton(
+                        onClick = {
+                            zoomScale = 2f
+                            panOffset = Offset.Zero
+                        },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(16.dp),
+                        shape = CircleShape,
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+                        )
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = selectedRegionId ?: "Interactive Event Map",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (selectedRegionId != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = if (selectedRegionId != null) "Middletown Regional Airport" else "Pinch to zoom • Drag to pan",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        if (zoomScale != 1f || panOffset != Offset.Zero) {
-                            IconButton(onClick = {
-                                zoomScale = 1f
-                                panOffset = Offset.Zero
-                            }) {
-                                Icon(Icons.Default.Refresh, contentDescription = "Reset View")
-                            }
-                        }
+                        Icon(Icons.Default.Refresh, contentDescription = "Reset View")
                     }
                 }
             }
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
         }
-        
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
 }
 

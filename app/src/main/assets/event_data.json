@@ -20,11 +20,11 @@
     },
     { "name": "Safe Skies Aviation, LLC", "level": "Business Class", "description": "Business Class Sponsor", "website": "https://safeskiesaviation.com" },
     { "name": "Balloon Dog Events", "level": "Business Class", "description": "Business Class Sponsor", "website": "https://www.balloondogevents.com" },
-    { "name": "Thread Headz", "level": "Business Class", "description": "Business Class Sponsor", "website": "https://www.threadheadz.com" },
+    { "name": "Thread Headz", "level": "Business Class", "description": "Business Class Sponsor", "website": "https://threadheadzz.com/home/comingsoon" },
     { "name": "Lewis Horticultural Service", "level": "Business Class", "description": "Business Class Sponsor", "website": "http://lewishorticultural.com" },
     { "name": "BB Tech Services", "level": "Business Class", "description": "Business Class Sponsor", "website": "https://bbtechservices.com" },
     { "name": "Middletown Community Foundation", "level": "Coach Class", "description": "Coach Class Sponsor", "website": "https://mcfoundation.org" },
-    { "name": "Askren Balloon Team", "level": "Coach Class", "description": "Coach Class Sponsor", "website": "http://askrenballoonteam.com" },
+    { "name": "Askren Balloon Team", "level": "Coach Class", "description": "Coach Class Sponsor", "website": "https://askrenballoonteam.com" },
     { "name": "Hartzell Propeller", "level": "Coach Class", "description": "Coach Class Sponsor", "website": "https://hartzellprop.com" },
     { "name": "Valley Central Bank", "level": "Passport", "description": "Passport Sponsor", "website": "https://valleycentral.org" },
     { "name": "Midwest Air Recovery", "level": "Passport", "description": "Passport Sponsor", "website": "http://midwestairrecovery.com" },
@@ -60,7 +60,7 @@
     "rules": "No outside food or beverage. Clear bags only. No smoking in the hangars. All attendees must be 21+ with a valid ID to consume alcohol.",
     "hotels": [
       { "name": "Drury Inn & Suites", "link": "https://www.druryhotels.com" },
-      { "name": "Hampton Inn", "link": "https://www.hilton.com/en/hotels/mwtohhx-hampton-middletown/" }
+      { "name": "Hampton Inn", "link": "https://www.hilton.com/en/hotels/mwomdhx-hampton-middletown/" }
     ]
   }
 }
