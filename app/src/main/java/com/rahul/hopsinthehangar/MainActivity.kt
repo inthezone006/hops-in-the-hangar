@@ -324,7 +324,18 @@ fun MainScreen(analytics: FirebaseAnalytics? = Firebase.analytics) {
                     }
                 ) 
             }
-            composable(Screen.Map.route) { MapScreen(eventData, favoriteIds) }
+            composable(Screen.Map.route) { 
+                MapScreen(
+                    eventData = eventData, 
+                    favoriteIds = favoriteIds,
+                    onVendorClick = { id ->
+                        analytics?.logEvent("map_vendor_click") {
+                            param("vendor_id", id)
+                        }
+                        navController.navigate("detail/vendor/$id")
+                    }
+                ) 
+            }
             composable(Screen.Detail.route) { backStackEntry ->
                 val type = backStackEntry.arguments?.getString("type") ?: ""
                 val id = backStackEntry.arguments?.getString("id") ?: ""
@@ -1313,20 +1324,26 @@ fun EntertainmentScreen(schedule: List<ScheduleItem>) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(eventData: EventData?, favoriteIds: Set<String>) {
+fun MapScreen(eventData: EventData?, favoriteIds: Set<String>, onVendorClick: (String) -> Unit) {
     val context = LocalContext.current
     var regions by remember { mutableStateOf<List<MapRegion>>(emptyList()) }
     var selectedRegionId by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val selectedVendor = remember(selectedRegionId, eventData) {
+        eventData?.vendors?.find { it.mapId == selectedRegionId }
+    }
+
     // Transformation state
-    var zoomScale by remember { mutableFloatStateOf(2f) }
+    var zoomScale by remember { mutableFloatStateOf(1.5f) } 
     var panOffset by remember { mutableStateOf(Offset.Zero) }
 
-    // Constants for SVG viewport
-    val svgWidth = 2000f
-    val svgHeight = 2000f
+    // Natural SVG dimensions
+    var svgWidth by remember { mutableFloatStateOf(2000f) }
+    var svgHeight by remember { mutableFloatStateOf(2000f) }
+    var svgOffsetX by remember { mutableFloatStateOf(0f) }
+    var svgOffsetY by remember { mutableFloatStateOf(0f) }
 
     val heartedMapIds = remember(eventData, favoriteIds) {
         eventData?.vendors?.filter { favoriteIds.contains(it.name) }?.mapNotNull { it.mapId }?.toSet() ?: emptySet()
@@ -1335,34 +1352,90 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>) {
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             try {
-                val parsedRegions = parseSvg(context, "map.svg")
+                val inputStream = context.assets.open("map.svg")
+                val (parsedRegions, viewBox) = parseSvg(inputStream)
+                
+                svgWidth = viewBox.width()
+                svgHeight = viewBox.height()
+                svgOffsetX = viewBox.left
+                svgOffsetY = viewBox.top
+                
                 regions = parsedRegions
                 isLoading = false
             } catch (e: Exception) {
-                Log.e("MapScreen", "Error loading event data", e)
+                Log.e("MapScreen", "Error loading map data", e)
                 isLoading = false
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error loading map", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).clipToBounds()) {
-        if (isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-        } else {
-            // Map Content Area
-            BoxWithConstraints(
+    Column(modifier = Modifier.fillMaxSize()) {
+        val title = selectedVendor?.name ?: selectedRegionId ?: "Tap Map to Select"
+        val category = selectedVendor?.category ?: (if (selectedRegionId != null) "Location Info" else "Select a location on the map")
+        
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+            onClick = { 
+                selectedVendor?.let { onVendorClick(it.name) }
+            }
+        ) {
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .clipToBounds()
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = when {
+                            selectedVendor != null -> "SELECTED VENDOR"
+                            selectedRegionId != null -> "SELECTED AREA"
+                            else -> "EVENT MAP"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = category,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+        }
+
+        Box(modifier = Modifier.weight(1f).background(MaterialTheme.colorScheme.background).clipToBounds()) {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else {
+                // Map Content Area
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clipToBounds()
+                ) {
                 val canvasWidth = constraints.maxWidth.toFloat()
                 val canvasHeight = constraints.maxHeight.toFloat()
                 
-                // baseScaleX fits width, baseScaleY fits height
                 val baseScaleX = canvasWidth / svgWidth
                 val baseScaleY = canvasHeight / svgHeight
-                
-                // Use maxOf to "fill" the available area
                 val baseScale = maxOf(baseScaleX, baseScaleY)
                 
                 val primaryColor = MaterialTheme.colorScheme.primary
@@ -1372,25 +1445,11 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>) {
                     modifier = Modifier
                         .fillMaxSize()
                         .clipToBounds()
-                        .pointerInput(regions) {
-                            detectTransformGestures { centroid, pan, zoom, _ ->
-                                val oldScale = zoomScale
-                                val newScale = (oldScale * zoom).coerceIn(1f, 10f)
-                                val scaleFactor = newScale / oldScale
-                                
-                                // New gesture logic: panOffset is center-relative
-                                panOffset = (panOffset * scaleFactor) + 
-                                           (centroid - Offset(canvasWidth/2f, canvasHeight/2f)) * (1f - scaleFactor) + 
-                                           pan
-                                zoomScale = newScale
-                            }
-                        }
-                        .pointerInput(regions, zoomScale, panOffset) {
+                        .pointerInput(regions, zoomScale, panOffset, svgWidth, svgHeight) {
                             detectTapGestures { offset ->
-                                // New hit test logic: panOffset is center-relative
                                 val sTotal = baseScale * zoomScale
-                                val svgX = (offset.x - canvasWidth/2f - panOffset.x) / sTotal + svgWidth/2f
-                                val svgY = (offset.y - canvasHeight/2f - panOffset.y) / sTotal + svgHeight/2f
+                                val svgX = (offset.x - canvasWidth/2f - panOffset.x) / sTotal + svgWidth/2f + svgOffsetX
+                                val svgY = (offset.y - canvasHeight/2f - panOffset.y) / sTotal + svgHeight/2f + svgOffsetY
                                 
                                 val clickedRegion = regions.findLast { region ->
                                     region.isClickable && hitTest(region.path, svgX, svgY)
@@ -1399,14 +1458,25 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>) {
                                 selectedRegionId = clickedRegion?.id
                             }
                         }
+                        .pointerInput(regions) {
+                            detectTransformGestures { centroid, pan, zoom, _ ->
+                                val oldScale = zoomScale
+                                val newScale = (oldScale * zoom).coerceIn(1f, 10f)
+                                val scaleFactor = newScale / oldScale
+                                
+                                panOffset = (panOffset * scaleFactor) + 
+                                           (centroid - Offset(canvasWidth/2f, canvasHeight/2f)) * (1f - scaleFactor) + 
+                                           pan
+                                zoomScale = newScale
+                            }
+                        }
                 ) {
                     drawIntoCanvas { canvas ->
                         canvas.save()
                         
-                        // Center-relative translation
                         val sTotal = baseScale * zoomScale
-                        val tx = canvasWidth/2f - (svgWidth/2f) * sTotal + panOffset.x
-                        val ty = canvasHeight/2f - (svgHeight/2f) * sTotal + panOffset.y
+                        val tx = canvasWidth/2f - (svgWidth/2f + svgOffsetX) * sTotal + panOffset.x
+                        val ty = canvasHeight/2f - (svgHeight/2f + svgOffsetY) * sTotal + panOffset.y
                         
                         canvas.translate(tx, ty)
                         canvas.scale(sTotal, sTotal)
@@ -1437,10 +1507,10 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>) {
                 }
 
                 // Floating Reset Button Overlay
-                if (zoomScale != 2f || panOffset != Offset.Zero) {
+                if (zoomScale != 1.5f || panOffset != Offset.Zero) {
                     FilledTonalIconButton(
                         onClick = {
-                            zoomScale = 2f
+                            zoomScale = 1.5f
                             panOffset = Offset.Zero
                         },
                         modifier = Modifier
@@ -1463,6 +1533,7 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>) {
         }
     }
 }
+}
 
 data class MapRegion(
     val id: String,
@@ -1471,18 +1542,17 @@ data class MapRegion(
     val isClickable: Boolean = true
 )
 
-fun parseSvg(context: android.content.Context, fileName: String): List<MapRegion> {
+fun parseSvg(inputStream: java.io.InputStream): Pair<List<MapRegion>, android.graphics.RectF> {
     val regionsMap = mutableMapOf<String, MutableList<Pair<Path, Color>>>()
     val factory = XmlPullParserFactory.newInstance()
     val parser = factory.newPullParser()
-    val inputStream = context.assets.open(fileName)
     parser.setInput(inputStream, null)
 
     var eventType = parser.eventType
     val groupIds = mutableListOf<String>()
+    val viewBox = android.graphics.RectF(0f, 0f, 2000f, 2000f)
     
-    // Non-clickable layer IDs
-    val backgroundIds = setOf("Event Map Base", "Full Event Map")
+    val backgroundIds = setOf("Event Map Base", "Full Event Map", "Background")
 
     while (eventType != XmlPullParser.END_DOCUMENT) {
         val tagName = parser.name
@@ -1492,10 +1562,29 @@ fun parseSvg(context: android.content.Context, fileName: String): List<MapRegion
                 val id = rawId?.replace(Regex("_\\d+$"), "")
                 val transform = parser.getAttributeValue(null, "transform")
                 
-                if (tagName == "g") {
+                if (tagName == "svg") {
+                    val vb = parser.getAttributeValue(null, "viewBox")
+                    if (vb != null) {
+                        val parts = vb.split(Regex("[ ,]+")).filter { it.isNotEmpty() }
+                        if (parts.size == 4) {
+                            val x = parts[0].toFloat()
+                            val y = parts[1].toFloat()
+                            val w = parts[2].toFloat()
+                            val h = parts[3].toFloat()
+                            viewBox.set(x, y, x + w, y + h)
+                        }
+                    }
+                } else if (tagName == "g") {
                     groupIds.add(id ?: "")
                 } else {
-                    val fill = parser.getAttributeValue(null, "fill") ?: "#000000"
+                    val fillAttr = parser.getAttributeValue(null, "fill")
+                    val styleAttr = parser.getAttributeValue(null, "style") ?: ""
+                    
+                    val fillFromStyle = if (styleAttr.contains("fill:")) {
+                        styleAttr.substringAfter("fill:").substringBefore(";").trim()
+                    } else null
+                    
+                    val fill = fillAttr ?: fillFromStyle ?: "#000000"
                     val fillOpacity = parser.getAttributeValue(null, "fill-opacity")?.toFloatOrNull() ?: 1f
                     
                     val color = if (fill == "none") {
@@ -1509,12 +1598,10 @@ fun parseSvg(context: android.content.Context, fileName: String): List<MapRegion
                         }
                     }
 
-                    val finalId = id ?: groupIds.lastOrNull { it.isNotEmpty() }
+                    val finalId = id ?: groupIds.lastOrNull { it.isNotEmpty() } ?: "untagged_${tagName}_${System.currentTimeMillis()}"
+                    val shouldSkip = (finalId.contains("Event Map Base") || finalId.contains("Background")) && tagName == "rect"
 
-                    // Skip drawing the very base white rectangle if it's "Event Map Base"
-                    val shouldSkip = finalId == "Event Map Base" && tagName == "rect"
-
-                    if (!shouldSkip && finalId != null) {
+                    if (!shouldSkip) {
                         val androidPath = android.graphics.Path()
                         var pathFound = false
 
@@ -1526,7 +1613,7 @@ fun parseSvg(context: android.content.Context, fileName: String): List<MapRegion
                                         val p = PathParser().parsePathString(d).toPath().asAndroidPath()
                                         androidPath.set(p)
                                         pathFound = true
-                                    } catch (_: Exception) { Log.e("MapParser", "Error parsing path") }
+                                    } catch (_: Exception) { }
                                 }
                             }
                             "rect" -> {
@@ -1565,22 +1652,20 @@ fun parseSvg(context: android.content.Context, fileName: String): List<MapRegion
     }
     inputStream.close()
 
-    return regionsMap.map { (id, paths) ->
+    val regions = regionsMap.map { (id, paths) ->
         val combinedPath = Path()
         paths.forEach { (path, _) -> combinedPath.addPath(path) }
-        
-        // Find the "best" color (non-transparent if possible)
         val regionColor = paths.find { it.second != Color.Transparent }?.second ?: Color.Transparent
-        
-        MapRegion(id, combinedPath, regionColor, !backgroundIds.contains(id))
+        MapRegion(id, combinedPath, regionColor, !backgroundIds.contains(id) && !id.startsWith("untagged_"))
     }
+    
+    return regions to viewBox
 }
 
 private fun applySvgTransform(path: android.graphics.Path, transform: String?) {
     if (transform == null) return
     val matrix = android.graphics.Matrix()
     
-    // Robust parsing for rotate(angle [cx cy])
     if (transform.contains("rotate")) {
         val content = transform.substringAfter("rotate(").substringBefore(")")
         val values = content.split(Regex("[ ,]+")).filter { it.isNotEmpty() }
@@ -1592,7 +1677,6 @@ private fun applySvgTransform(path: android.graphics.Path, transform: String?) {
         } catch (_: Exception) {}
     }
     
-    // Support for basic translate(x [y])
     if (transform.contains("translate")) {
         val content = transform.substringAfter("translate(").substringBefore(")")
         val values = content.split(Regex("[ ,]+")).filter { it.isNotEmpty() }
@@ -1612,7 +1696,6 @@ fun hitTest(path: Path, x: Float, y: Float): Boolean {
     val bounds = android.graphics.RectF()
     androidPath.computeBounds(bounds, true)
     
-    // 1. Check if it hits the actual filled region (with small tolerance for strokes)
     val tolerance = 5f
     val region = android.graphics.Region()
     region.setPath(androidPath, android.graphics.Region(
@@ -1623,9 +1706,6 @@ fun hitTest(path: Path, x: Float, y: Float): Boolean {
     ))
     
     if (region.contains(x.toInt(), y.toInt())) return true
-
-    // 2. Fallback: Check if it's within the bounding box
-    // This handles clicking in the "empty space" inside icons or disconnected paths
     return bounds.contains(x, y)
 }
 
@@ -1633,7 +1713,6 @@ fun hitTest(path: Path, x: Float, y: Float): Boolean {
 @Composable
 fun MainScreenPreview() {
     HopsInTheHangarTheme {
-        // Pass null for analytics in preview to avoid "FirebaseApp is not initialized" error
         MainScreen(analytics = null)
     }
 }
