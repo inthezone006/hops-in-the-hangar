@@ -1522,9 +1522,10 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>, onVendorClick: (S
                         if (!region.isClickable) return@forEach
                         val vendor = eventData?.vendors?.find { it.mapId == region.id }
                         val isHearted = heartedMapIds.contains(region.id)
+                        val isSelected = region.id == selectedRegionId
                         
                         // Decide what to show based on zoom and heart status
-                        val shouldShowDetail = zoomScale > 2.2f || isHearted
+                        val shouldShowDetail = zoomScale > 2.0f || isHearted || isSelected
                         if (!shouldShowDetail) return@forEach
 
                         val screenX = (region.center.x - (svgWidth/2f + svgOffsetX)) * sTotal + canvasWidth/2f + panOffset.x
@@ -1539,7 +1540,13 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>, onVendorClick: (S
                                     translationX = screenX - 50.dp.toPx()
                                     translationY = screenY - 24.dp.toPx()
                                 }
-                                .width(100.dp),
+                                .width(100.dp)
+                                .clickable(
+                                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    selectedRegionId = region.id
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             val resourceName = vendor?.name?.lowercase()?.replace(" ", "_")?.replace(Regex("[^a-z0-9_]"), "")
@@ -1547,15 +1554,19 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>, onVendorClick: (S
 
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Surface(
-                                    modifier = Modifier.size(if (zoomScale > 4f || isHearted) 40.dp else 24.dp),
+                                    modifier = Modifier.size(if (zoomScale > 4f || isHearted || isSelected) 40.dp else 24.dp),
                                     shape = CircleShape,
-                                    color = if (isHearted) favoriteColor else MaterialTheme.colorScheme.surface,
-                                    border = BorderStroke(2.dp, if (isHearted) Color.White else MaterialTheme.colorScheme.primary),
+                                    color = when {
+                                        isHearted -> favoriteColor
+                                        isSelected -> primaryColor
+                                        else -> MaterialTheme.colorScheme.surface
+                                    },
+                                    border = BorderStroke(2.dp, if (isHearted || isSelected) Color.White else MaterialTheme.colorScheme.primary),
                                     tonalElevation = 4.dp
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        // Priority 1: High Zoom or Hearted -> Show Logo
-                                        if ((zoomScale > 5.5f || isHearted) && resourceId != 0) {
+                                        // Priority 1: High Zoom or Hearted/Selected -> Show Logo
+                                        if ((zoomScale > 5.5f || isHearted || isSelected) && resourceId != 0) {
                                             AsyncImage(
                                                 model = resourceId,
                                                 contentDescription = vendor?.name,
@@ -1563,14 +1574,14 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>, onVendorClick: (S
                                                 contentScale = ContentScale.Crop
                                             )
                                         } 
-                                        // Priority 2: Medium Zoom or Hearted (if no logo) -> Show Booth Number
-                                        else if (zoomScale > 3.5f || isHearted) {
+                                        // Priority 2: Medium Zoom or Hearted/Selected (if no logo) -> Show Booth Number
+                                        else if (zoomScale > 3.5f || isHearted || isSelected) {
                                             val boothNum = region.id.filter { it.isDigit() }.ifEmpty { "?" }
                                             Text(
                                                 text = boothNum,
                                                 style = MaterialTheme.typography.labelMedium.copy(
                                                     fontWeight = FontWeight.Bold,
-                                                    color = if (isHearted) Color.White else MaterialTheme.colorScheme.onSurface
+                                                    color = if (isHearted || isSelected) Color.White else MaterialTheme.colorScheme.onSurface
                                                 )
                                             )
                                         } 
@@ -1595,11 +1606,11 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>, onVendorClick: (S
                                     }
                                 }
                                 
-                                if (zoomScale > 7.5f) {
+                                if (zoomScale > 7.5f || isSelected) {
                                     Surface(
                                         modifier = Modifier.padding(top = 4.dp),
                                         shape = RoundedCornerShape(4.dp),
-                                        color = Color.Black.copy(alpha = 0.7f),
+                                        color = if (isSelected) primaryColor.copy(alpha = 0.9f) else Color.Black.copy(alpha = 0.7f),
                                         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
                                     ) {
                                         Text(
