@@ -57,8 +57,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -1431,115 +1433,243 @@ fun MapScreen(eventData: EventData?, favoriteIds: Set<String>, onVendorClick: (S
                         .fillMaxSize()
                         .clipToBounds()
                 ) {
-                val canvasWidth = constraints.maxWidth.toFloat()
-                val canvasHeight = constraints.maxHeight.toFloat()
-                
-                val baseScaleX = canvasWidth / svgWidth
-                val baseScaleY = canvasHeight / svgHeight
-                val baseScale = maxOf(baseScaleX, baseScaleY)
-                
-                val primaryColor = MaterialTheme.colorScheme.primary
-                val favoriteColor = Color(0xFFFF4081)
+                    val canvasWidth = constraints.maxWidth.toFloat()
+                    val canvasHeight = constraints.maxHeight.toFloat()
+                    
+                    val baseScaleX = canvasWidth / svgWidth
+                    val baseScaleY = canvasHeight / svgHeight
+                    val baseScale = maxOf(baseScaleX, baseScaleY)
+                    
+                    val primaryColor = MaterialTheme.colorScheme.primary
+                    val favoriteColor = Color(0xFFFF4081)
+                    val sTotal = baseScale * zoomScale
 
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clipToBounds()
-                        .pointerInput(regions, zoomScale, panOffset, svgWidth, svgHeight) {
-                            detectTapGestures { offset ->
-                                val sTotal = baseScale * zoomScale
-                                val svgX = (offset.x - canvasWidth/2f - panOffset.x) / sTotal + svgWidth/2f + svgOffsetX
-                                val svgY = (offset.y - canvasHeight/2f - panOffset.y) / sTotal + svgHeight/2f + svgOffsetY
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clipToBounds()
+                            .pointerInput(regions, zoomScale, panOffset, svgWidth, svgHeight) {
+                                detectTapGestures { offset ->
+                                    val svgX = (offset.x - canvasWidth/2f - panOffset.x) / sTotal + svgWidth/2f + svgOffsetX
+                                    val svgY = (offset.y - canvasHeight/2f - panOffset.y) / sTotal + svgHeight/2f + svgOffsetY
+                                    
+                                    val clickedRegion = regions.findLast { region ->
+                                        region.isClickable && hitTest(region.path, svgX, svgY)
+                                    }
+                                    
+                                    selectedRegionId = clickedRegion?.id
+                                }
+                            }
+                            .pointerInput(regions) {
+                                detectTransformGestures { centroid, pan, zoom, _ ->
+                                    val oldScale = zoomScale
+                                    val newScale = (oldScale * zoom).coerceIn(1f, 10f)
+                                    val scaleFactor = newScale / oldScale
+                                    
+                                    panOffset = (panOffset * scaleFactor) + 
+                                               (centroid - Offset(canvasWidth/2f, canvasHeight/2f)) * (1f - scaleFactor) + 
+                                               pan
+                                    zoomScale = newScale
+                                }
+                            }
+                    ) {
+                        drawIntoCanvas { canvas ->
+                            canvas.save()
+                            
+                            val tx = canvasWidth/2f - (svgWidth/2f + svgOffsetX) * sTotal + panOffset.x
+                            val ty = canvasHeight/2f - (svgHeight/2f + svgOffsetY) * sTotal + panOffset.y
+                            
+                            canvas.translate(tx, ty)
+                            canvas.scale(sTotal, sTotal)
+                            
+                            regions.forEach { region ->
+                                val isSelected = region.id == selectedRegionId
+                                val isHearted = heartedMapIds.contains(region.id)
                                 
-                                val clickedRegion = regions.findLast { region ->
-                                    region.isClickable && hitTest(region.path, svgX, svgY)
+                                // Fade out static icons as we zoom in to reveal dynamic ones
+                                // Start fading at 2.0x, fully gone by 2.8x
+                                val staticAlpha = if (region.isClickable && !isSelected && !isHearted) {
+                                    (1f - ((zoomScale - 2.0f) / 0.8f)).coerceIn(0f, 1f)
+                                } else 1f
+
+                                if (staticAlpha > 0f) {
+                                    drawPath(
+                                        path = region.path,
+                                        color = when {
+                                            isSelected -> primaryColor
+                                            isHearted -> favoriteColor
+                                            else -> region.color
+                                        },
+                                        alpha = staticAlpha,
+                                        style = Fill
+                                    )
+                                    if (isSelected || isHearted) {
+                                        drawPath(
+                                            path = region.path,
+                                            color = Color.Black,
+                                            alpha = staticAlpha,
+                                            style = Stroke(width = 2f / (baseScale * zoomScale))
+                                        )
+                                    }
+                                }
+                            }
+                            canvas.restore()
+                        }
+                    }
+
+                    // Map Overlays (Icons and Labels)
+                    regions.forEach { region ->
+                        if (!region.isClickable) return@forEach
+                        val vendor = eventData?.vendors?.find { it.mapId == region.id }
+                        val isHearted = heartedMapIds.contains(region.id)
+                        
+                        // Decide what to show based on zoom and heart status
+                        val shouldShowDetail = zoomScale > 2.2f || isHearted
+                        if (!shouldShowDetail) return@forEach
+
+                        val screenX = (region.center.x - (svgWidth/2f + svgOffsetX)) * sTotal + canvasWidth/2f + panOffset.x
+                        val screenY = (region.center.y - (svgHeight/2f + svgOffsetY)) * sTotal + canvasHeight/2f + panOffset.y
+                        
+                        // Culling
+                        if (screenX < -50f || screenX > canvasWidth + 50f || screenY < -50f || screenY > canvasHeight + 50f) return@forEach
+                        
+                        Box(
+                            modifier = Modifier
+                                .graphicsLayer {
+                                    translationX = screenX - 50.dp.toPx()
+                                    translationY = screenY - 24.dp.toPx()
+                                }
+                                .width(100.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val resourceName = vendor?.name?.lowercase()?.replace(" ", "_")?.replace(Regex("[^a-z0-9_]"), "")
+                            val resourceId = if (resourceName != null) context.resources.getIdentifier(resourceName, "drawable", context.packageName) else 0
+
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Surface(
+                                    modifier = Modifier.size(if (zoomScale > 4f || isHearted) 40.dp else 24.dp),
+                                    shape = CircleShape,
+                                    color = if (isHearted) favoriteColor else MaterialTheme.colorScheme.surface,
+                                    border = BorderStroke(2.dp, if (isHearted) Color.White else MaterialTheme.colorScheme.primary),
+                                    tonalElevation = 4.dp
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        // Priority 1: High Zoom or Hearted -> Show Logo
+                                        if ((zoomScale > 5.5f || isHearted) && resourceId != 0) {
+                                            AsyncImage(
+                                                model = resourceId,
+                                                contentDescription = vendor?.name,
+                                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } 
+                                        // Priority 2: Medium Zoom or Hearted (if no logo) -> Show Booth Number
+                                        else if (zoomScale > 3.5f || isHearted) {
+                                            val boothNum = region.id.filter { it.isDigit() }.ifEmpty { "?" }
+                                            Text(
+                                                text = boothNum,
+                                                style = MaterialTheme.typography.labelMedium.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isHearted) Color.White else MaterialTheme.colorScheme.onSurface
+                                                )
+                                            )
+                                        } 
+                                        // Priority 3: Low Zoom -> Show Category Icon
+                                        else {
+                                            val icon = when {
+                                                vendor?.category?.contains("Food", ignoreCase = true) == true || region.id.contains("Food", ignoreCase = true) -> Icons.Default.Restaurant
+                                                region.id.contains("Entrance", ignoreCase = true) -> Icons.Default.MeetingRoom
+                                                region.id.contains("Restroom", ignoreCase = true) || region.id.contains("Toilet", ignoreCase = true) -> Icons.Default.Wc
+                                                region.id.contains("Stage", ignoreCase = true) || region.id.contains("Music", ignoreCase = true) -> Icons.Default.MusicNote
+                                                region.id.contains("VIP", ignoreCase = true) -> Icons.Default.Star
+                                                region.id.contains("Information", ignoreCase = true) || region.id.contains("Info", ignoreCase = true) -> Icons.Default.Info
+                                                else -> Icons.Default.LocalDrink
+                                            }
+                                            Icon(
+                                                imageVector = icon,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(12.dp),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
                                 }
                                 
-                                selectedRegionId = clickedRegion?.id
+                                if (zoomScale > 7.5f) {
+                                    Surface(
+                                        modifier = Modifier.padding(top = 4.dp),
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = Color.Black.copy(alpha = 0.7f),
+                                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
+                                    ) {
+                                        Text(
+                                            text = vendor?.name ?: region.id,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White,
+                                                fontSize = 9.sp
+                                            ),
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            textAlign = TextAlign.Center,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
                             }
-                        }
-                        .pointerInput(regions) {
-                            detectTransformGestures { centroid, pan, zoom, _ ->
-                                val oldScale = zoomScale
-                                val newScale = (oldScale * zoom).coerceIn(1f, 10f)
-                                val scaleFactor = newScale / oldScale
-                                
-                                panOffset = (panOffset * scaleFactor) + 
-                                           (centroid - Offset(canvasWidth/2f, canvasHeight/2f)) * (1f - scaleFactor) + 
-                                           pan
-                                zoomScale = newScale
-                            }
-                        }
-                ) {
-                    drawIntoCanvas { canvas ->
-                        canvas.save()
-                        
-                        val sTotal = baseScale * zoomScale
-                        val tx = canvasWidth/2f - (svgWidth/2f + svgOffsetX) * sTotal + panOffset.x
-                        val ty = canvasHeight/2f - (svgHeight/2f + svgOffsetY) * sTotal + panOffset.y
-                        
-                        canvas.translate(tx, ty)
-                        canvas.scale(sTotal, sTotal)
-                        
-                        regions.forEach { region ->
-                            val isSelected = region.id == selectedRegionId
-                            val isHearted = heartedMapIds.contains(region.id)
                             
-                            drawPath(
-                                path = region.path,
-                                color = when {
-                                    isSelected -> primaryColor
-                                    isHearted -> favoriteColor
-                                    else -> region.color
-                                },
-                                style = Fill
-                            )
-                            if (isSelected || isHearted) {
-                                drawPath(
-                                    path = region.path,
-                                    color = Color.Black,
-                                    style = Stroke(width = 2f / (baseScale * zoomScale))
-                                )
+                            // Heart badge for favorites
+                            if (isHearted) {
+                                Surface(
+                                    modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .padding(start = 28.dp) // Offset from center icon
+                                        .size(16.dp),
+                                    shape = CircleShape,
+                                    color = favoriteColor,
+                                    border = BorderStroke(1.dp, Color.White)
+                                ) {
+                                    Icon(Icons.Default.Favorite, contentDescription = null, tint = Color.White, modifier = Modifier.padding(2.dp))
+                                }
                             }
                         }
-                        canvas.restore()
+                    }
+
+                    // Floating Reset Button Overlay
+                    if (zoomScale != 1.5f || panOffset != Offset.Zero) {
+                        FilledTonalIconButton(
+                            onClick = {
+                                zoomScale = 1.5f
+                                panOffset = Offset.Zero
+                            },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(16.dp),
+                            shape = CircleShape,
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+                            )
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Reset View")
+                        }
                     }
                 }
 
-                // Floating Reset Button Overlay
-                if (zoomScale != 1.5f || panOffset != Offset.Zero) {
-                    FilledTonalIconButton(
-                        onClick = {
-                            zoomScale = 1.5f
-                            panOffset = Offset.Zero
-                        },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(16.dp),
-                        shape = CircleShape,
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
-                        )
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Reset View")
-                    }
-                }
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
             }
-
-            SnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
         }
     }
-}
 }
 
 data class MapRegion(
     val id: String,
     val path: Path,
     val color: Color,
-    val isClickable: Boolean = true
+    val isClickable: Boolean = true,
+    val center: Offset = Offset.Zero
 )
 
 fun parseSvg(inputStream: java.io.InputStream): Pair<List<MapRegion>, android.graphics.RectF> {
@@ -1553,6 +1683,12 @@ fun parseSvg(inputStream: java.io.InputStream): Pair<List<MapRegion>, android.gr
     val viewBox = android.graphics.RectF(0f, 0f, 2000f, 2000f)
     
     val backgroundIds = setOf("Event Map Base", "Full Event Map", "Background")
+    
+    // Muted Aviation Colors
+    val hangarColor = Color(0xFF112240) // PrimaryNavy
+    val runwayColor = Color(0xFF1C1C1C) // Asphalt Black
+    val grassColor = Color(0xFF1A2E1F)  // Dark Forest Green
+    val taxiwayColor = Color(0xFF2D2D2D) // Concrete Gray
 
     while (eventType != XmlPullParser.END_DOCUMENT) {
         val tagName = parser.name
@@ -1587,18 +1723,24 @@ fun parseSvg(inputStream: java.io.InputStream): Pair<List<MapRegion>, android.gr
                     val fill = fillAttr ?: fillFromStyle ?: "#000000"
                     val fillOpacity = parser.getAttributeValue(null, "fill-opacity")?.toFloatOrNull() ?: 1f
                     
-                    val color = if (fill == "none") {
-                        Color.Transparent
-                    } else {
-                        try {
-                            val baseColor = android.graphics.Color.parseColor(fill)
-                            Color(baseColor).copy(alpha = fillOpacity)
-                        } catch (_: Exception) {
-                            Color.Gray.copy(alpha = fillOpacity)
+                    val finalId = id ?: groupIds.lastOrNull { it.isNotEmpty() } ?: "untagged_${tagName}_${System.currentTimeMillis()}"
+                    
+                    val color = when {
+                        finalId.contains("Runway", ignoreCase = true) -> runwayColor
+                        finalId.contains("Taxiway", ignoreCase = true) || finalId.contains("Concrete", ignoreCase = true) -> taxiwayColor
+                        finalId.contains("Grass", ignoreCase = true) -> grassColor
+                        finalId.contains("Hangar", ignoreCase = true) -> hangarColor
+                        fill == "none" -> Color.Transparent
+                        else -> {
+                            try {
+                                val baseColor = android.graphics.Color.parseColor(fill)
+                                Color(baseColor).copy(alpha = fillOpacity)
+                            } catch (_: Exception) {
+                                Color.Gray.copy(alpha = fillOpacity)
+                            }
                         }
                     }
 
-                    val finalId = id ?: groupIds.lastOrNull { it.isNotEmpty() } ?: "untagged_${tagName}_${System.currentTimeMillis()}"
                     val shouldSkip = (finalId.contains("Event Map Base") || finalId.contains("Background")) && tagName == "rect"
 
                     if (!shouldSkip) {
@@ -1656,7 +1798,12 @@ fun parseSvg(inputStream: java.io.InputStream): Pair<List<MapRegion>, android.gr
         val combinedPath = Path()
         paths.forEach { (path, _) -> combinedPath.addPath(path) }
         val regionColor = paths.find { it.second != Color.Transparent }?.second ?: Color.Transparent
-        MapRegion(id, combinedPath, regionColor, !backgroundIds.contains(id) && !id.startsWith("untagged_"))
+        
+        // Calculate center for labels
+        val bounds = combinedPath.getBounds()
+        val center = Offset(bounds.left + bounds.width / 2f, bounds.top + bounds.height / 2f)
+        
+        MapRegion(id, combinedPath, regionColor, !backgroundIds.contains(id) && !id.startsWith("untagged_"), center)
     }
     
     return regions to viewBox
